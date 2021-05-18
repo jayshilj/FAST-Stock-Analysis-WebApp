@@ -138,6 +138,13 @@ def main():
         #### 2. Twitter API to get Real time Tweets
         #### 3. Google Trends API to get Real time Trends
         """)
+        st.text('')
+        import webbrowser
+
+        url = 'https://codelabs-preview.appspot.com/?file_id=1qxniFjwkDir6NT17KkvS1zDbmIgawcrEEwbbfCtAk8k#1'
+
+        if st.button('Project Report'):
+            webbrowser.open_new_tab(url)
 
         
         st.title('AWS Data Architecture')
