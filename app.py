@@ -48,7 +48,7 @@ from gensim.summarization import summarize
 st.set_option('deprecation.showfileUploaderEncoding', False)
 st.set_option('deprecation.showPyplotGlobalUse', False)
 
-# data_dir = '/root/Assignment4/Assignment-Trial/Assignment-Trial/inference-data/'
+data_dir = './inference-data/'
 # data_dir2 = '/root/Assignment4/Assignment-Trial/Assignment-Trial/fastAPIandStreamlit/awsdownload/'
 
 
