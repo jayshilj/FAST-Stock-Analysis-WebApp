@@ -139,12 +139,9 @@ def main():
         #### 3. Google Trends API to get Real time Trends
         """)
         st.text('')
-        import webbrowser
 
-        url = 'https://codelabs-preview.appspot.com/?file_id=1qxniFjwkDir6NT17KkvS1zDbmIgawcrEEwbbfCtAk8k#1'
-
-        if st.button('Project Report'):
-            webbrowser.open_new_tab(url)
+        link = '[Project Report](https://codelabs-preview.appspot.com/?file_id=1qxniFjwkDir6NT17KkvS1zDbmIgawcrEEwbbfCtAk8k#1)'
+        st.markdown(link, unsafe_allow_html=True)
 
         
         st.title('AWS Data Architecture')
