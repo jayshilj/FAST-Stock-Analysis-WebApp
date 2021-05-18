@@ -1,5 +1,4 @@
 import streamlit as st
-import altair as alt
 from os import listdir
 from os.path import isfile, join
 
@@ -11,15 +10,11 @@ import yfinance as yf
 import datetime as dt
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-import random
 import string
 from datetime import datetime
 from datetime import date
-import requests as requests
 
-import pandas as pd
 import matplotlib.pyplot as plt
-import streamlit as st
 
 from fbprophet import Prophet
 from fbprophet.plot import plot_plotly
@@ -32,9 +27,9 @@ import re
 import textblob
 from textblob import TextBlob
 from wordcloud import WordCloud, STOPWORDS, ImageColorGenerator
-import openpyxl
+# import openpyxl
 import time
-import tqdm
+# import tqdm
 import warnings
 warnings.filterwarnings("ignore")
 import matplotlib.pyplot as plt
@@ -44,7 +39,7 @@ import seaborn as sns
 #To Hide Warnings
 
 from urllib.request import urlopen, Request
-import bs4 
+import bs4
 from bs4 import BeautifulSoup
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 import plotly.express as px
@@ -100,8 +95,11 @@ def main():
 
     verified = "True"
     result = "F.A.S.T. WebApp"
-    page = st.sidebar.radio("Choose a Function", ["Live News Sentiment","Company Basic Details","Company Advanced Details","Stock Future Prediction","Google Trends with Forecast","Twitter Trends", "Meeting Summarization"])
-    st.title(result)
+    st.sidebar.title(result)
+    st.sidebar.write("Created By: Jayshil Jain [LinkedIn](https://www.linkedin.com/in/jayshiljain/)")
+
+    page = st.sidebar.radio("Choose a Function", ["About the Project","Live News Sentiment","Company Basic Details","Company Advanced Details","Stock Future Prediction","Google Trends with Forecast","Twitter Trends", "Meeting Summarization"])
+    
     
     
 
@@ -131,6 +129,25 @@ def main():
         st.write("Trends Over the Years and Months")
         st.pyplot(fig2)
 
+    elif page == "About the Project":
+
+        st.title('Data Sources')
+        st.write("""
+        ### Our F.A.S.T application have 3 data sources for two different use cases:
+        #### 1. Web Scrapping to get Live News Data
+        #### 2. Twitter API to get Real time Tweets
+        #### 3. Google Trends API to get Real time Trends
+        """)
+
+        
+        st.title('AWS Data Architecture')
+        st.image('./Images/Architecture Final AWS_FAST.jpg',width=900, use_column_width=1200)
+
+        st.title('Dashboard')
+        import streamlit.components.v1 as components
+        components.iframe("https://app.powerbi.com/view?r=eyJrIjoiY2U0MmQ0ZDktYTY2Ny00MDI1LWFjMzEtMjE1ZDQxMzk3OGFhIiwidCI6ImE4ZWVjMjgxLWFhYTMtNGRhZS1hYzliLTlhMzk4YjkyMTVlNyIsImMiOjN9&pageName=ReportSection05422fd4ba56b92cd452", height=600, width = 900)
+
+    
     elif page == "Meeting Summarization":
 
         symbols = ['./Audio Files/Meeting 1.mp3','./Audio Files/Meeting 2.mp3', './Audio Files/Meeting 3.mp3', './Audio Files/Meeting 4.mp3']
