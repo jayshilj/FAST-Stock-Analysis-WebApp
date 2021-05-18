@@ -2,7 +2,7 @@ import streamlit as st
 import altair as alt
 from os import listdir
 from os.path import isfile, join
-from pydantic import BaseModel
+
 
 import time
 import pandas as pd
