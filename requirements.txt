@@ -114,7 +114,7 @@ grafanalib==0.5.10
 graphviz==0.16
 greenlet==1.0.0
 grpcio==1.32.0
-gunicorn==19.10.0
+gunicorn
 h11==0.12.0
 h5py==2.10.0
 holidays==0.10.3
