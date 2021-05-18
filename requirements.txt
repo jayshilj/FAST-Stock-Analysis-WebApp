@@ -266,9 +266,9 @@ smart-open==5.0.0
 smmap==4.0.0
 snowflake-connector-python==2.4.1
 soupsieve==2.2.1
-SQLAlchemy==1.3.9
-SQLAlchemy-JSONField==1.0.0
-SQLAlchemy-Utils==0.36.8
+SQLAlchemy
+SQLAlchemy-JSONField
+SQLAlchemy-Utils
 sqlparse==0.3.0
 starlette==0.13.6
 streamlit==0.79.0
