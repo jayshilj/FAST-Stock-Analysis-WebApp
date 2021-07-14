@@ -98,7 +98,7 @@ def main():
     st.sidebar.title(result)
     st.sidebar.write("Created By: Jayshil Jain [LinkedIn](https://www.linkedin.com/in/jayshiljain/)")
 
-    page = st.sidebar.radio("Choose a Function", ["About the Project","Live News Sentiment","Company Basic Details","Company Advanced Details","Stock Future Prediction","Google Trends with Forecast","Twitter Trends", "Meeting Summarization"])
+    page = st.sidebar.radio("Choose a Function", ["About the Project","Live News Sentiment","Google Trends with Forecast","Twitter Trends", "Meeting Summarization"])
     
     
     
