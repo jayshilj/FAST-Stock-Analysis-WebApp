@@ -744,7 +744,7 @@ def main():
             fig = px.pie(df_pie, values=df_pie['headline'], names=df_pie.index, color=df_pie.index, color_discrete_map={'Positive':'green', 'Neutral':'darkblue', 'Negative':'red'})
 
             st.subheader('Dataframe with Latest News')
-            st.dataframe(df)
+            st.table(df)
 
             st.subheader('Latest News Sentiment Distribution using Pie Chart') 
             st.plotly_chart(fig)
