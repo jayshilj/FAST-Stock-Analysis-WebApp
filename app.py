@@ -44,9 +44,6 @@ from bs4 import BeautifulSoup
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 import plotly.express as px
 from gensim.summarization import summarize
-import searchconsole
-account = searchconsole.authenticate(client_config="GSCTatieLouCredentials.json", serialize='credentials.json', flow="console")
-st.write(account)
 
 
 st.set_option('deprecation.showfileUploaderEncoding', False)
