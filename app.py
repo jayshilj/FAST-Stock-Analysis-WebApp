@@ -16,8 +16,8 @@ from datetime import date
 
 import matplotlib.pyplot as plt
 
-from fbprophet import Prophet
-from fbprophet.plot import plot_plotly
+#from fbprophet import Prophet
+#from fbprophet.plot import plot_plotly
 from pytrends.request import TrendReq
 
 import tweepy
@@ -69,7 +69,7 @@ def get_data(keyword):
     df.reset_index(inplace=True)
     df.columns = ["ds", "y"]
     return df
-
+"""    
 # make forecasts for a new period
 def make_pred(df, periods):
     prophet_basic = Prophet()
@@ -82,9 +82,7 @@ def make_pred(df, periods):
 
     return forecast, fig1, fig2
 
-
-
-
+"""
 
 
 def main():
@@ -407,7 +405,7 @@ def main():
 
         st.subheader('Raw data')
         st.write(data.tail())
-
+"""
         # Plot raw data
         def plot_raw_data():
             fig = go.Figure()
@@ -438,7 +436,7 @@ def main():
         st.write("Forecast components")
         fig2 = m.plot_components(forecast)
         st.write(fig2)
-    
+    """
     elif page == "Company Advanced Details":
         snp500 = pd.read_csv("./Datasets/SP500.csv")
         symbols = snp500['Symbol'].sort_values().tolist()   
