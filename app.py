@@ -373,7 +373,7 @@ def main():
 
 
 
-        
+"""
     elif page == "Stock Future Prediction":
         snp500 = pd.read_csv("./Datasets/SP500.csv")
         symbols = snp500['Symbol'].sort_values().tolist()   
@@ -405,7 +405,7 @@ def main():
 
         st.subheader('Raw data')
         st.write(data.tail())
-"""
+
         # Plot raw data
         def plot_raw_data():
             fig = go.Figure()
@@ -437,6 +437,7 @@ def main():
         fig2 = m.plot_components(forecast)
         st.write(fig2)
     """
+
     elif page == "Company Advanced Details":
         snp500 = pd.read_csv("./Datasets/SP500.csv")
         symbols = snp500['Symbol'].sort_values().tolist()   
