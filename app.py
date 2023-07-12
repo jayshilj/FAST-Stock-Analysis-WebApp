@@ -436,8 +436,7 @@ def main():
         st.write("Forecast components")
         fig2 = m.plot_components(forecast)
         st.write(fig2)
-    """
-
+"""
     elif page == "Company Advanced Details":
         snp500 = pd.read_csv("./Datasets/SP500.csv")
         symbols = snp500['Symbol'].sort_values().tolist()   
