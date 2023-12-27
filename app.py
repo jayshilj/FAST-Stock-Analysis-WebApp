@@ -360,83 +360,8 @@ def main():
                 st.write(plt.imshow(wordcloud, interpolation='bilinear'))
                 st.pyplot()
             
-            
-            
-            
-            
-    
-        #st.sidebar.subheader("Scatter-plot setup")
-        #box1 = st.sidebar.selectbox(label= "X axis", options = numeric_columns)
-        #box2 = st.sidebar.selectbox(label="Y axis", options=numeric_columns)
-        #sns.jointplot(x=box1, y= box2, data=df, kind = "reg", color= "red")
-        #st.pyplot()
 
 
-
-"""
-    elif page == "Stock Future Prediction":
-        snp500 = pd.read_csv("./Datasets/SP500.csv")
-        symbols = snp500['Symbol'].sort_values().tolist()   
-
-        ticker = st.sidebar.selectbox(
-            'Choose a S&P 500 Stock',
-        symbols)
-
-        START = "2015-01-01"
-        TODAY = date.today().strftime("%Y-%m-%d")
-
-        st.title('Stock Forecast App')
-
-        st.image('https://media2.giphy.com/media/JtBZm3Getg3dqxK0zP/giphy-downsized-large.gif',width=250, use_column_width=200)
-
-        # stocks = ('GOOG', 'AAPL', 'MSFT', 'GME', 'W', 'TSLA')
-        # selected_stock = st.selectbox('Select dataset for prediction', stocks)
-
-        n_years = st.slider('Years of prediction:', 1, 4)
-        period = n_years * 365
-
-        st.title('Stock Forecast App To Do part in stockapp.py')
-
-        data_load_state = st.text('Loading data...')
-
-        data = yf.download(ticker, START, TODAY)
-        data.reset_index(inplace=True)
-        data_load_state.text('Loading data... done!')
-
-        st.subheader('Raw data')
-        st.write(data.tail())
-
-        # Plot raw data
-        def plot_raw_data():
-            fig = go.Figure()
-            fig.add_trace(go.Scatter(x=data['Date'], y=data['Open'], name="stock_open"))
-            fig.add_trace(go.Scatter(x=data['Date'], y=data['Close'], name="stock_close"))
-            fig.layout.update(title_text='Time Series data with Rangeslider', xaxis_rangeslider_visible=True)
-            st.plotly_chart(fig)
-            
-        plot_raw_data()
-
-        # Predict forecast with Prophet.
-        df_train = data[['Date','Close']]
-        df_train = df_train.rename(columns={"Date": "ds", "Close": "y"})
-
-        m = Prophet()
-        m.fit(df_train)
-        future = m.make_future_dataframe(periods=period)
-        forecast = m.predict(future)
-
-        # Show and plot forecast
-        st.subheader('Forecast data')
-        st.write(forecast.tail())
-            
-        st.write(f'Forecast plot for {n_years} years')
-        fig1 = plot_plotly(m, forecast)
-        st.plotly_chart(fig1)
-
-        st.write("Forecast components")
-        fig2 = m.plot_components(forecast)
-        st.write(fig2)
-"""
 
     elif page == "Company Advanced Details":
         snp500 = pd.read_csv("./Datasets/SP500.csv")
