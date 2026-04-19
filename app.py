@@ -845,26 +845,38 @@ def main():
         df_train['ds'] = pd.to_datetime(df_train['ds'], errors='coerce')
         df_train['y'] = pd.to_numeric(df_train['y'], errors='coerce').ffill().bfill()
 
-        if prophet_available and plot_plotly is not None:
-            try:
-                m = Prophet()
-                m.fit(df_train)
-                future = m.make_future_dataframe(periods=period)
-                forecast = m.predict(future)
-                st.subheader('Forecast data')
-                st.write(forecast.tail())
-                st.write(f'Forecast plot for {n_years} years')
-                fig1 = plot_plotly(m, forecast)
-                st.plotly_chart(fig1)
-                st.write('Forecast components')
-                fig2 = m.plot_components(forecast)
-                st.pyplot(fig2)
-            except Exception:
-                st.caption('Prophet failed; using linear trend forecast instead.')
-                _stock_forecast_fallback(df_train, period, n_years)
-        else:
-            st.caption('Using linear trend forecast (Prophet is not installed or not usable on this machine).')
-            _stock_forecast_fallback(df_train, period, n_years)
+        st.caption('Using Holt-Winters Exponential Smoothing model.')
+        d_train = df_train.dropna(subset=['ds', 'y']).set_index('ds').sort_index()
+
+        try:
+            from statsmodels.tsa.holtwinters import ExponentialSmoothing
+            model = ExponentialSmoothing(d_train['y'], trend='add', seasonal=None, initialization_method="estimated")
+            fit_model = model.fit()
+            yhat_future = fit_model.forecast(int(period))
+        except Exception:
+            t0 = d_train.index.min()
+            x = (d_train.index - t0).days.values.astype(float)
+            y_val = d_train['y'].values.astype(float)
+            coef = np.polyfit(x, y_val, 1)
+            poly = np.poly1d(coef)
+            last = d_train.index.max()
+            future_dates = pd.date_range(last + pd.Timedelta(days=1), periods=int(period), freq="D")
+            x_f = (pd.to_datetime(future_dates) - t0).days.values.astype(float)
+            yhat_future = pd.Series(np.maximum(poly(x_f), 1e-6), index=future_dates)
+
+        all_ds_future = pd.date_range(d_train.index.max() + pd.Timedelta(days=1), periods=int(period), freq="D")
+        forecast = pd.DataFrame({"ds": all_ds_future, "yhat": np.maximum(yhat_future.values, 1e-6)})
+
+        st.subheader('Forecast data')
+        st.write(forecast.tail())
+        
+        st.write(f'Forecast plot for {n_years} years')
+        fig1 = go.Figure()
+        fig1.add_trace(go.Scatter(x=df_train["ds"], y=df_train["y"], name="Historical", line=dict(width=2.5)))
+        fig1.add_trace(go.Scatter(x=forecast["ds"], y=forecast["yhat"], name="Forecast", line=dict(dash="dash", width=2.5, color='#E67E22')))
+        fig1.update_layout(xaxis_title="Date", yaxis_title="Price")
+        fig1 = apply_plotly_dark(fig1)
+        st.plotly_chart(fig1, use_container_width=True)
 
 
 
