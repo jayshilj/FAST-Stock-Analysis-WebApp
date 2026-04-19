@@ -94,24 +94,6 @@ def main():
     #from gensim.summarization import summarize
     #from transformers import pipeline as summarize
 
-    def apply_plotly_dark(fig, height=420):
-        fig.update_layout(
-            template="plotly_dark",
-            height=height,
-            margin=dict(l=20, r=20, t=40, b=20),
-            paper_bgcolor="rgba(0,0,0,0)",
-            plot_bgcolor="rgba(0,0,0,0)",
-            legend=dict(
-                orientation="h",
-                yanchor="bottom",
-                y=1.02,
-                xanchor="left",
-                x=0
-            ),
-        )
-        fig.update_xaxes(showgrid=True, gridcolor="rgba(255,255,255,0.08)")
-        fig.update_yaxes(showgrid=True, gridcolor="rgba(255,255,255,0.08)")
-        return fig
 
     def compute_quick_stats(info, price_df):
         stats = {
@@ -445,7 +427,6 @@ def main():
         fig1.add_trace(go.Scatter(x=d_idx.index, y=d_idx['y'], mode='markers', name='Actual', marker=dict(size=5, color='rgba(255, 255, 255, 0.7)')))
         fig1.add_trace(go.Scatter(x=forecast['ds'], y=forecast['yhat'], mode='lines', name='Forecast', line=dict(color='#0072B2', width=3)))
         fig1.update_layout(title="Search Trend Forecast", xaxis_title="Date", yaxis_title="Interest")
-        fig1 = apply_plotly_dark(fig1)
 
         fig2 = make_subplots(rows=2, cols=1, subplot_titles=('Monthly Average (Historical)', 'Average by Weekday'))
         
@@ -458,7 +439,6 @@ def main():
         fig2.add_trace(go.Bar(x=dow_names, y=dow_means.values, name='Weekday Avg', marker_color='#009E73'), row=2, col=1)
 
         fig2.update_layout(height=600, showlegend=False)
-        fig2 = apply_plotly_dark(fig2)
 
         return forecast, fig1, fig2
 
@@ -536,7 +516,7 @@ def main():
         left, right = st.columns([2.15, 1])
 
         with left:
-            render_section_card_start(st, "Price performance", "Two-year price history with volume context")
+            render_section_card_start(st, "Performance History", "Two-year price history with volume context")
 
             fig = go.Figure()
             fig.add_trace(
@@ -570,8 +550,7 @@ def main():
                 ),
                 xaxis_rangeslider_visible=False,
             )
-            fig = apply_plotly_dark(fig, height=460)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, use_container_width=True, theme="streamlit")
             render_section_card_end(st)
 
         with right:
@@ -585,10 +564,10 @@ def main():
             st.markdown(f"**52W Low:** {info.get('fiftyTwoWeekLow', 'N/A')}")
             render_section_card_end(st)
 
-        row2_left, row2_mid, row2_right = st.columns([1.2, 1, 1])
+        row2_left, row2_right, row2_mid = st.columns([1.2, 1, 1])
 
         with row2_left:
-            render_section_card_start(st, "Technical pulse", "Short moving average view")
+            render_section_card_start(st, "Trend Indicators", "Short moving average view")
             chart_df = price_df.copy()
             chart_df["SMA_20"] = chart_df[price_col].rolling(20).mean()
             chart_df["SMA_50"] = chart_df[price_col].rolling(50).mean()
@@ -597,12 +576,11 @@ def main():
             fig_ma.add_trace(go.Scatter(x=chart_df["Date"], y=chart_df[price_col], name="Price", line=dict(width=2.5)))
             fig_ma.add_trace(go.Scatter(x=chart_df["Date"], y=chart_df["SMA_20"], name="20D SMA"))
             fig_ma.add_trace(go.Scatter(x=chart_df["Date"], y=chart_df["SMA_50"], name="50D SMA"))
-            fig_ma = apply_plotly_dark(fig_ma, height=360)
-            st.plotly_chart(fig_ma, use_container_width=True)
+            st.plotly_chart(fig_ma, use_container_width=True, theme="streamlit")
             render_section_card_end(st)
 
         with row2_mid:
-            render_section_card_start(st, "Forecast view", "Simple forward-looking trend")
+            render_section_card_start(st, "Future AI Outlook", "Exponential Smoothing (Holt-Winters)")
             df_train = price_df[["Date", price_col]].copy()
             df_train = df_train.rename(columns={"Date": "ds", price_col: "y"})
             df_train["ds"] = pd.to_datetime(df_train["ds"], errors="coerce")
@@ -631,12 +609,11 @@ def main():
             fig_fc = go.Figure()
             fig_fc.add_trace(go.Scatter(x=df_train["ds"], y=df_train["y"], name="Historical", line=dict(width=2.5)))
             fig_fc.add_trace(go.Scatter(x=forecast["ds"], y=forecast["yhat"], name="Forecast", line=dict(dash="dash", width=2.5)))
-            fig_fc = apply_plotly_dark(fig_fc, height=360)
-            st.plotly_chart(fig_fc, use_container_width=True)
+            st.plotly_chart(fig_fc, use_container_width=True, theme="streamlit")
             render_section_card_end(st)
 
         with row2_right:
-            render_section_card_start(st, "News sentiment", "Recent headlines and mood")
+            render_section_card_start(st, "Market Sentiment", "Recent headlines and mood")
             try:
                 news_df = get_news_sentiment_df(ticker)
                 if news_df is not None and not news_df.empty:
@@ -649,8 +626,7 @@ def main():
                         names="Sentiment",
                         hole=0.62
                     )
-                    fig_sent = apply_plotly_dark(fig_sent, height=260)
-                    st.plotly_chart(fig_sent, use_container_width=True)
+                    st.plotly_chart(fig_sent, use_container_width=True, theme="streamlit")
 
                     render_news_preview(news_df)
                 else:
@@ -684,13 +660,13 @@ def main():
         df = get_data(keyword)
         forecast, fig1, fig2 = make_pred(df, periods, show_fallback_caption=True)
 
-        st.plotly_chart(fig1, use_container_width=True)
+        st.plotly_chart(fig1, use_container_width=True, theme="streamlit")
             
-        st.write("Trends Over the Years and Months")
-        st.plotly_chart(fig2, use_container_width=True)
+        st.write("### Temporal Decomposition")
+        st.plotly_chart(fig2, use_container_width=True, theme="streamlit")
 
         st.markdown("---")
-        st.write("### Seasonal Patterns (Monthly Average)")
+        st.write("### Yearly Seasonality Index")
         st.write(f"Observe how search interest for **{keyword}** behaves across the calendar year.")
 
         # Calculate seasonal averages across calendar months
@@ -710,8 +686,7 @@ def main():
             color="y",
             color_continuous_scale="Sunsetdark",
         )
-        fig_season = apply_plotly_dark(fig_season, height=400)
-        st.plotly_chart(fig_season, use_container_width=True)
+        st.plotly_chart(fig_season, use_container_width=True, theme="streamlit")
 
     elif page == "About the Project":
         page_title(st, "Overview", "Data sources, architecture, and embedded dashboard")
@@ -836,7 +811,7 @@ def main():
             fig.add_trace(go.Scatter(x=data['Date'], y=data['Open'], name="stock_open"))
             fig.add_trace(go.Scatter(x=data['Date'], y=data['Close'], name="stock_close"))
             fig.layout.update(title_text='Time Series data with Rangeslider', xaxis_rangeslider_visible=True)
-            st.plotly_chart(fig)
+            st.plotly_chart(fig, theme="streamlit")
             
         plot_raw_data()
 
@@ -875,8 +850,7 @@ def main():
         fig1.add_trace(go.Scatter(x=df_train["ds"], y=df_train["y"], name="Historical", line=dict(width=2.5)))
         fig1.add_trace(go.Scatter(x=forecast["ds"], y=forecast["yhat"], name="Forecast", line=dict(dash="dash", width=2.5, color='#E67E22')))
         fig1.update_layout(xaxis_title="Date", yaxis_title="Price")
-        fig1 = apply_plotly_dark(fig1)
-        st.plotly_chart(fig1, use_container_width=True)
+        st.plotly_chart(fig1, use_container_width=True, theme="streamlit")
 
 
 
@@ -974,7 +948,7 @@ def main():
         figMA.update_layout(legend_title_text='Trend')
         figMA.update_yaxes(tickprefix="$")
 
-        st.plotly_chart(figMA, use_container_width=True)  
+        st.plotly_chart(figMA, use_container_width=True, theme="streamlit")  
 
         st.subheader('Moving Average Convergence Divergence (MACD)')
         numYearMACD = st.number_input('Insert period (Year): ', min_value=1, max_value=10, value=2, key=2) 
@@ -1044,7 +1018,7 @@ def main():
         ))
 
         figMACD.update_yaxes(tickprefix="$")
-        st.plotly_chart(figMACD, use_container_width=True)
+        st.plotly_chart(figMACD, use_container_width=True, theme="streamlit")
 
 
         
@@ -1115,7 +1089,7 @@ def main():
             st.dataframe(df)
 
             st.subheader('Latest News Sentiment Distribution using Pie Chart')
-            st.plotly_chart(fig)
+            st.plotly_chart(fig, theme="streamlit")
 
             plt.rcParams['figure.figsize'] = [11, 5]
             mean_scores = df.groupby(['ticker', 'date']).mean(numeric_only=True)
@@ -1219,7 +1193,7 @@ def main():
                     'yanchor': 'top'
                 }
             )
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, use_container_width=True, theme="streamlit")
 
             marketInfo = {
                 "Volume": info.get('volume', 'N/A'),
