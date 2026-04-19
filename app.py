@@ -67,22 +67,7 @@ def main():
 
     import matplotlib.pyplot as plt
 
-    try:
-        from prophet import Prophet
-        from prophet.plot import plot_plotly
-        prophet_available = True
-    except Exception:
-        Prophet = None
-        plot_plotly = None
-        prophet_available = False
-
-    # Some environments import Prophet but fail at runtime
-    # due to missing/invalid Stan backend.
-    if prophet_available:
-        try:
-            _ = Prophet()
-        except Exception:
-            prophet_available = False
+    from statsmodels.tsa.holtwinters import ExponentialSmoothing
     from pytrends.request import TrendReq
 
     import json
@@ -411,116 +396,74 @@ def main():
         df.columns = ["ds", "y"]
         return df
 
-    def make_pred_simple(df, periods):
+    def make_pred(df, periods, show_fallback_caption=True):
         """
-        Prophet-free forecast: polynomial trend on time + simple component views.
-        Google Trends scores are clipped to [0, 100].
+        Forecast using Holt-Winters Exponential Smoothing.
+        Google Trends values are expected to be between 0 and 100.
         """
+        from statsmodels.tsa.holtwinters import ExponentialSmoothing
+        import plotly.graph_objects as go
+        from plotly.subplots import make_subplots
+
+        if show_fallback_caption:
+            st.caption('Using Holt-Winters Exponential Smoothing model.')
+
         d = df.copy()
         d['ds'] = pd.to_datetime(d['ds'], errors='coerce')
         d['y'] = pd.to_numeric(d['y'], errors='coerce').ffill().bfill()
         d = d.dropna(subset=['ds'])
-        if len(d) < 3:
+        
+        if len(d) < 14:
             st.error('Not enough trend history to build a forecast.')
             st.stop()
 
-        last_date = d['ds'].max()
-        future_dates = pd.date_range(
-            start=last_date + pd.Timedelta(days=1),
-            periods=int(periods),
-            freq='D',
-        )
-        hist_ds = d['ds'].reset_index(drop=True)
-        all_ds = pd.concat([hist_ds, pd.Series(future_dates)], ignore_index=True)
+        d_idx = d.set_index('ds').sort_index()
+        
+        try:
+            model = ExponentialSmoothing(d_idx['y'], trend='add', seasonal=None, initialization_method="estimated")
+            fit_model = model.fit()
+            yhat_future = fit_model.forecast(int(periods))
+        except Exception as e:
+            t0 = d_idx.index.min()
+            x = (d_idx.index - t0).days.values.astype(float)
+            y_vals = d_idx['y'].values.astype(float)
+            coef = np.polyfit(x, y_vals, 1)
+            poly = np.poly1d(coef)
+            last = d_idx.index.max()
+            future_dates = pd.date_range(last + pd.Timedelta(days=1), periods=int(periods), freq='D')
+            x_f = (pd.to_datetime(future_dates) - t0).days.values.astype(float)
+            yhat_future = pd.Series(np.clip(poly(x_f), 0.0, 100.0), index=future_dates)
+        
+        yhat_future = np.clip(yhat_future, 0, 100) # bounds
 
-        t0 = d['ds'].min()
-        x = (d['ds'] - t0).dt.days.values.astype(float)
-        y = d['y'].values.astype(float)
-        deg = min(2, max(1, len(x) - 2))
-        coef = np.polyfit(x, y, deg=deg)
-        poly = np.poly1d(coef)
-        x_all = (pd.to_datetime(all_ds) - t0).dt.days.values.astype(float)
-        yhat = np.clip(poly(x_all), 0.0, 100.0)
+        last_date = d_idx.index.max()
+        future_dates = pd.date_range(start=last_date + pd.Timedelta(days=1), periods=int(periods), freq='D')
+        
+        forecast = pd.DataFrame({'ds': future_dates, 'yhat': yhat_future.values})
 
-        forecast = pd.DataFrame({'ds': pd.to_datetime(all_ds), 'yhat': yhat})
+        fig1 = go.Figure()
+        fig1.add_trace(go.Scatter(x=d_idx.index, y=d_idx['y'], mode='markers', name='Actual', marker=dict(size=5, color='rgba(255, 255, 255, 0.7)')))
+        fig1.add_trace(go.Scatter(x=forecast['ds'], y=forecast['yhat'], mode='lines', name='Forecast', line=dict(color='#0072B2', width=3)))
+        fig1.update_layout(title="Search Trend Forecast", xaxis_title="Date", yaxis_title="Interest")
+        fig1 = apply_plotly_dark(fig1)
 
-        fig1, ax = plt.subplots(figsize=(10, 6))
-        ax.plot(d['ds'], d['y'], 'k.', label='Actual', markersize=4)
-        ax.plot(forecast['ds'], forecast['yhat'], color='#0072B2', linewidth=1.5, label='Forecast (trend model)')
-        ax.set_xlabel('date')
-        ax.set_ylabel('trend')
-        ax.legend()
-        ax.grid(True, alpha=0.3)
-        fig1.tight_layout()
+        fig2 = make_subplots(rows=2, cols=1, subplot_titles=('Monthly Average (Historical)', 'Average by Weekday'))
+        
+        d_reset = d.copy()
+        monthly = d_reset.set_index('ds')['y'].resample('ME').mean()
+        fig2.add_trace(go.Scatter(x=monthly.index, y=monthly.values, mode='lines', name='Monthly Avg', line=dict(color='#D55E00', width=2)), row=1, col=1)
+        
+        dow_means = d_reset.groupby(d_reset['ds'].dt.dayofweek)['y'].mean()
+        dow_names = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+        fig2.add_trace(go.Bar(x=dow_names, y=dow_means.values, name='Weekday Avg', marker_color='#009E73'), row=2, col=1)
 
-        fig2, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8))
-        monthly = d.set_index('ds')['y'].resample('ME').mean()
-        ax1.plot(monthly.index, monthly.values, color='#D55E00')
-        ax1.set_title('Monthly average (historical)')
-        ax1.grid(True, alpha=0.3)
-        dow_means = d.groupby(d['ds'].dt.dayofweek, sort=True)['y'].mean()
-        ax2.bar(dow_means.index, dow_means.values, color='#009E73')
-        ax2.set_xticks(range(7))
-        ax2.set_xticklabels(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'])
-        ax2.set_title('Average by weekday')
-        ax2.grid(True, alpha=0.3)
-        fig2.tight_layout()
+        fig2.update_layout(height=600, showlegend=False)
+        fig2 = apply_plotly_dark(fig2)
 
         return forecast, fig1, fig2
 
-    def make_pred(df, periods, show_fallback_caption=True):
-        if prophet_available:
-            try:
-                prophet_basic = Prophet()
-                prophet_basic.fit(df)
-                future = prophet_basic.make_future_dataframe(periods=periods)
-                forecast = prophet_basic.predict(future)
-                fig1 = prophet_basic.plot(forecast, xlabel='date', ylabel='trend', figsize=(10, 6))
-                fig2 = prophet_basic.plot_components(forecast)
-                forecast = forecast[['ds', 'yhat']]
-                return forecast, fig1, fig2
-            except Exception:
-                pass
-        if show_fallback_caption:
-            st.caption('Using built-in trend forecast (Prophet is not installed or not usable on this machine).')
-        return make_pred_simple(df, periods)
-
-    def _stock_forecast_fallback(df_train, period_days, n_years):
-        d = df_train.dropna(subset=['ds', 'y']).copy()
-        if len(d) < 5:
-            st.error('Not enough price history to forecast.')
-            st.stop()
-        t0 = d['ds'].min()
-        x = (d['ds'] - t0).dt.days.values.astype(float)
-        y = d['y'].values.astype(float)
-        coef = np.polyfit(x, y, 1)
-        poly = np.poly1d(coef)
-        last = d['ds'].max()
-        future = pd.date_range(last + pd.Timedelta(days=1), periods=int(period_days), freq='D')
-        all_ds = pd.concat([d['ds'].reset_index(drop=True), pd.Series(future)], ignore_index=True)
-        x_all = (pd.to_datetime(all_ds) - t0).dt.days.values.astype(float)
-        yhat = np.maximum(poly(x_all), 1e-6)
-        forecast = pd.DataFrame({'ds': pd.to_datetime(all_ds), 'yhat': yhat})
-        st.subheader('Forecast data')
-        st.write(forecast.tail())
-        st.write(f'Forecast plot for {n_years} years (linear trend)')
-        figp = go.Figure()
-        figp.add_trace(go.Scatter(x=d['ds'], y=d['y'], name='Close (historical)'))
-        figp.add_trace(go.Scatter(x=forecast['ds'], y=forecast['yhat'], name='Forecast', line=dict(dash='dash')))
-        figp.update_layout(title_text='Price and linear trend forecast')
-        st.plotly_chart(figp, use_container_width=True)
-        st.write('Forecast components (approx.)')
-        figc, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8))
-        monthly = d.set_index('ds')['y'].resample('ME').mean()
-        ax1.plot(monthly.index, monthly.values, color='#D55E00')
-        ax1.set_title('Monthly average close (historical)')
-        ax1.grid(True, alpha=0.3)
-        resid = y - poly(x)
-        ax2.hist(resid, bins=30, color='#009E73', alpha=0.8)
-        ax2.set_title('Residuals vs linear trend (historical)')
-        ax2.grid(True, alpha=0.3)
-        figc.tight_layout()
-        st.pyplot(figc)
+    def _stock_forecast_fallback():
+        pass
 
 
     verified = "True"
@@ -666,32 +609,24 @@ def main():
             df_train["y"] = pd.to_numeric(df_train["y"], errors="coerce").ffill().bfill()
 
             forecast_days = 90
-            if prophet_available and plot_plotly is not None:
-                try:
-                    m = Prophet()
-                    m.fit(df_train)
-                    future = m.make_future_dataframe(periods=forecast_days)
-                    forecast = m.predict(future)[["ds", "yhat"]]
-                except Exception:
-                    t0 = df_train["ds"].min()
-                    x = (df_train["ds"] - t0).dt.days.values.astype(float)
-                    y = df_train["y"].values.astype(float)
-                    coef = np.polyfit(x, y, 1)
-                    poly = np.poly1d(coef)
-                    future_dates = pd.date_range(df_train["ds"].max() + pd.Timedelta(days=1), periods=forecast_days, freq="D")
-                    all_ds = pd.concat([df_train["ds"].reset_index(drop=True), pd.Series(future_dates)], ignore_index=True)
-                    x_all = (pd.to_datetime(all_ds) - t0).dt.days.values.astype(float)
-                    forecast = pd.DataFrame({"ds": all_ds, "yhat": np.maximum(poly(x_all), 1e-6)})
-            else:
-                t0 = df_train["ds"].min()
-                x = (df_train["ds"] - t0).dt.days.values.astype(float)
-                y = df_train["y"].values.astype(float)
-                coef = np.polyfit(x, y, 1)
+            d_train = df_train.dropna(subset=['ds', 'y']).set_index('ds').sort_index()
+            try:
+                model = ExponentialSmoothing(d_train['y'], trend='add', seasonal=None, initialization_method="estimated")
+                fit_model = model.fit()
+                yhat_future = fit_model.forecast(forecast_days)
+            except Exception:
+                t0 = d_train.index.min()
+                x = (d_train.index - t0).days.values.astype(float)
+                y_val = d_train['y'].values.astype(float)
+                coef = np.polyfit(x, y_val, 1)
                 poly = np.poly1d(coef)
-                future_dates = pd.date_range(df_train["ds"].max() + pd.Timedelta(days=1), periods=forecast_days, freq="D")
-                all_ds = pd.concat([df_train["ds"].reset_index(drop=True), pd.Series(future_dates)], ignore_index=True)
-                x_all = (pd.to_datetime(all_ds) - t0).dt.days.values.astype(float)
-                forecast = pd.DataFrame({"ds": all_ds, "yhat": np.maximum(poly(x_all), 1e-6)})
+                last = d_train.index.max()
+                future_dates = pd.date_range(last + pd.Timedelta(days=1), periods=forecast_days, freq="D")
+                x_f = (pd.to_datetime(future_dates) - t0).days.values.astype(float)
+                yhat_future = pd.Series(np.maximum(poly(x_f), 1e-6), index=future_dates)
+
+            all_ds_future = pd.date_range(d_train.index.max() + pd.Timedelta(days=1), periods=forecast_days, freq="D")
+            forecast = pd.DataFrame({"ds": all_ds_future, "yhat": np.maximum(yhat_future.values, 1e-6)})
 
             fig_fc = go.Figure()
             fig_fc.add_trace(go.Scatter(x=df_train["ds"], y=df_train["y"], name="Historical", line=dict(width=2.5)))
@@ -749,10 +684,10 @@ def main():
         df = get_data(keyword)
         forecast, fig1, fig2 = make_pred(df, periods, show_fallback_caption=True)
 
-        st.pyplot(fig1)
+        st.plotly_chart(fig1, use_container_width=True)
             
         st.write("Trends Over the Years and Months")
-        st.pyplot(fig2)
+        st.plotly_chart(fig2, use_container_width=True)
 
         st.markdown("---")
         st.write("### Seasonal Patterns (Monthly Average)")

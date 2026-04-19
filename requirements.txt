@@ -12,3 +12,4 @@ seaborn
 openpyxl
 tqdm
 vaderSentiment
+statsmodels

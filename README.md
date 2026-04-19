@@ -232,8 +232,8 @@ Defines all Process for transcribed audio to text and  getting text summarizatio
 Uses Amazon Transcribe to convert Audio to Text and uses Text Summarization Gensim algorithm to give summarization of audio files and also generate for the same
 ​
 ###  Stage 4 :  FORECASTING PIPELINE 
-Streamlit will be running on the EC2 instance, will provide various functionality of forecasting Stock prices & Trends thus allowing business team to make decisions based on sentiments of forecasted prices of stocks for targeted company 
-​
+Streamlit will be running on the EC2 instance, will provide various functionality of forecasting Stock prices & Trends thus allowing business team to make decisions based on sentiments of forecasted prices of stocks for targeted company.
+**Recent Upgrade:** We now leverage lightweight, high-accuracy statistical forecasting via `statsmodels` (Holt-Winters Exponential Smoothing). This seamlessly captures complicated trend behaviors and periodic seasonal spikes in the data (like holiday search trends). Additionally, all flat visualization graphs have been fully upgraded to interactive, hoverable 2D visuals built smoothly on `Plotly`.​
 ### Stage 5 : STREAMING TWEETS PIPELINE , LIVE NEWS & GOOGLE TRENDS PIPELINE
 Streamlit will be running on the EC2 instance, will provide various functionality of fetching Tweets, and perform various algorithms via functionality like word cloud formation of negative sentiments, positive sentiments, etc.
 ​
