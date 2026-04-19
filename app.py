@@ -751,9 +751,32 @@ def main():
 
         st.pyplot(fig1)
             
-        
         st.write("Trends Over the Years and Months")
         st.pyplot(fig2)
+
+        st.markdown("---")
+        st.write("### Seasonal Patterns (Monthly Average)")
+        st.write(f"Observe how search interest for **{keyword}** behaves across the calendar year.")
+
+        # Calculate seasonal averages across calendar months
+        df_season = df.copy()
+        df_season['Month'] = df_season['ds'].dt.month
+        month_map = {1:'Jan', 2:'Feb', 3:'Mar', 4:'Apr', 5:'May', 6:'Jun', 
+                     7:'Jul', 8:'Aug', 9:'Sep', 10:'Oct', 11:'Nov', 12:'Dec'}
+        df_season['Month Name'] = df_season['Month'].map(month_map)
+        seasonal_avg = df_season.groupby(['Month', 'Month Name'])['y'].mean().reset_index()
+        seasonal_avg = seasonal_avg.sort_values('Month')
+
+        fig_season = px.bar(
+            seasonal_avg,
+            x="Month Name",
+            y="y",
+            labels={"y": "Average Search Interest", "Month Name": "Month"},
+            color="y",
+            color_continuous_scale="Sunsetdark",
+        )
+        fig_season = apply_plotly_dark(fig_season, height=400)
+        st.plotly_chart(fig_season, use_container_width=True)
 
     elif page == "About the Project":
         page_title(st, "Overview", "Data sources, architecture, and embedded dashboard")
