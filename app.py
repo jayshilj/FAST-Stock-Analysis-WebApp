@@ -146,18 +146,46 @@ def main():
 
         preview = news_df.head(5)
         for _, row in preview.iterrows():
-            badge = render_sentiment_badge(str(row.get("Sentiment", "Neutral")))
+            sent = str(row.get("Sentiment", "Neutral")).strip()
             headline = str(row.get("headline", "No headline"))
             date_val = str(row.get("date", ""))
             time_val = str(row.get("time", ""))
+
+            if "NaT" in date_val:
+                date_val = ""
+
+            if sent.lower() == "positive":
+                color = "#22C55E"
+                dot = "🟢"
+            elif sent.lower() == "negative":
+                color = "#EF4444"
+                dot = "🔴"
+            else:
+                color = "#F59E0B"
+                dot = "🟡"
+
+            ts = f"{date_val} {time_val}".strip()
+
+            source = str(row.get("source", "")).strip()
+            link = str(row.get("link", "")).strip()
+
+            source_html = ''
+            if source:
+                if link:
+                    source_html = f'<a href="{link}" target="_blank" style="font-size:0.75rem; opacity:0.55; text-decoration:none; color:var(--primary-color);">{source}</a>'
+                else:
+                    source_html = f'<span style="font-size:0.75rem; opacity:0.55;">{source}</span>'
+
             st.markdown(
-                f'''
-                <div class="news-item">
-                    <div>{badge}</div>
-                    <div class="news-headline">{headline}</div>
-                    <div class="news-meta">{date_val} {time_val}</div>
-                </div>
-                ''',
+                f'<div style="border:1px solid rgba(128,128,128,0.2); border-radius:14px; '
+                f'padding:0.85rem 1rem; margin-bottom:0.65rem;">'
+                f'<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem;">'
+                f'<span style="font-weight:700; color:{color}; font-size:0.82rem;">{dot} {sent}</span>'
+                f'<span style="font-size:0.75rem; opacity:0.6;">{ts}</span>'
+                f'</div>'
+                f'<div style="font-size:0.92rem; font-weight:500; line-height:1.45; margin-bottom:0.3rem;">{headline}</div>'
+                f'{source_html}'
+                f'</div>',
                 unsafe_allow_html=True,
             )
 
@@ -186,8 +214,15 @@ def main():
             for x in news_table.findAll('tr'):
                 if x.a:
                     text = x.a.get_text()
+                    link = x.a.get('href', '')
                 else:
                     text = "No headline available"
+                    link = ''
+
+                source_span = x.find('span', class_='news-link-right')
+                if source_span is None:
+                    source_span = x.find('span')
+                source = source_span.get_text().strip() if source_span else ''
 
                 date_scrape = x.td.text.split()
                 date = None
@@ -200,10 +235,10 @@ def main():
                     time_val = date_scrape[1]
 
                 ticker_name = file_name.split('_')[0]
-                parsed_news.append([ticker_name, date, time_val, text])
+                parsed_news.append([ticker_name, date, time_val, text, source, link])
 
         vader = SentimentIntensityAnalyzer()
-        columns = ['ticker', 'date', 'time', 'headline']
+        columns = ['ticker', 'date', 'time', 'headline', 'source', 'link']
         parsed_and_scored_news = pd.DataFrame(parsed_news, columns=columns)
 
         if parsed_and_scored_news.empty:
@@ -424,19 +459,19 @@ def main():
         forecast = pd.DataFrame({'ds': future_dates, 'yhat': yhat_future.values})
 
         fig1 = go.Figure()
-        fig1.add_trace(go.Scatter(x=d_idx.index, y=d_idx['y'], mode='markers', name='Actual', marker=dict(size=5, color='rgba(255, 255, 255, 0.7)')))
-        fig1.add_trace(go.Scatter(x=forecast['ds'], y=forecast['yhat'], mode='lines', name='Forecast', line=dict(color='#0072B2', width=3)))
+        fig1.add_trace(go.Scatter(x=d_idx.index, y=d_idx['y'], mode='lines+markers', name='Actual', marker=dict(size=4, color='#6366F1'), line=dict(color='#6366F1', width=1.5)))
+        fig1.add_trace(go.Scatter(x=forecast['ds'], y=forecast['yhat'], mode='lines', name='Forecast', line=dict(color='#F97316', width=3, dash='dot')))
         fig1.update_layout(title="Search Trend Forecast", xaxis_title="Date", yaxis_title="Interest")
 
-        fig2 = make_subplots(rows=2, cols=1, subplot_titles=('Monthly Average (Historical)', 'Average by Weekday'))
+        fig2 = make_subplots(rows=2, cols=1, subplot_titles=('Monthly Average (Historical)', 'Average by Quarter'), vertical_spacing=0.18)
         
         d_reset = d.copy()
         monthly = d_reset.set_index('ds')['y'].resample('ME').mean()
         fig2.add_trace(go.Scatter(x=monthly.index, y=monthly.values, mode='lines', name='Monthly Avg', line=dict(color='#D55E00', width=2)), row=1, col=1)
         
-        dow_means = d_reset.groupby(d_reset['ds'].dt.dayofweek)['y'].mean()
-        dow_names = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-        fig2.add_trace(go.Bar(x=dow_names, y=dow_means.values, name='Weekday Avg', marker_color='#009E73'), row=2, col=1)
+        quarter_names = ['Q1 (Jan–Mar)', 'Q2 (Apr–Jun)', 'Q3 (Jul–Sep)', 'Q4 (Oct–Dec)']
+        quarter_means = d_reset.groupby(d_reset['ds'].dt.quarter)['y'].mean().reindex([1, 2, 3, 4], fill_value=0)
+        fig2.add_trace(go.Bar(x=quarter_names, y=[quarter_means.get(i, 0) for i in [1, 2, 3, 4]], name='Quarter Avg', marker_color=['#6366F1', '#22C55E', '#F59E0B', '#EF4444']), row=2, col=1)
 
         fig2.update_layout(height=600, showlegend=False)
 
@@ -451,31 +486,25 @@ def main():
 
     page = render_sidebar_navigation(st)
 
+    # ── Shared S&P 500 ticker selector (persists across pages) ──
+    snp500 = pd.read_csv("./Datasets/SP500.csv")
+    symbols = snp500['Symbol'].sort_values().tolist()
 
-    
-    
+    if "global_ticker" not in st.session_state:
+        st.session_state["global_ticker"] = "AAPL"
+
+    current_idx = symbols.index(st.session_state["global_ticker"]) if st.session_state["global_ticker"] in symbols else 0
+
+    st.sidebar.markdown("---")
+    ticker = st.sidebar.selectbox(
+        "Choose a S&P 500 Stock",
+        symbols,
+        index=current_idx,
+        key="global_ticker",
+    )
+
     if page == "Dashboard":
         render_dashboard_hero(st)
-
-        snp500 = pd.read_csv("./Datasets/SP500.csv")
-        symbols = snp500['Symbol'].sort_values().tolist()
-
-        top1, top2 = st.columns([2.2, 1])
-
-        with top1:
-            ticker = st.text_input(
-                "Search ticker",
-                value=st.session_state.get("global_ticker_search", "AAPL")
-            ).upper().strip()
-
-        with top2:
-            selected_ticker = st.selectbox(
-                "Or select S&P 500 ticker",
-                symbols,
-                index=symbols.index(ticker) if ticker in symbols else symbols.index("AAPL") if "AAPL" in symbols else 0
-            )
-            ticker = selected_ticker
-            st.session_state["global_ticker_search"] = ticker
 
         try:
             info = cached_company_info(ticker)
@@ -628,6 +657,7 @@ def main():
                     )
                     st.plotly_chart(fig_sent, use_container_width=True, theme="streamlit")
 
+                    st.markdown("### Latest News")
                     render_news_preview(news_df)
                 else:
                     st.info("No news found for this ticker.")
@@ -779,12 +809,6 @@ def main():
         
     elif page == "Stock Future Prediction":
         page_title(st, "Stock forecast", "Historical prices and forward projection")
-        snp500 = pd.read_csv("./Datasets/SP500.csv")
-        symbols = snp500['Symbol'].sort_values().tolist()   
-
-        ticker = st.sidebar.selectbox(
-            'Choose a S&P 500 Stock',
-            symbols)
 
         START = "2015-01-01"
         TODAY = date.today().strftime("%Y-%m-%d")
@@ -858,12 +882,6 @@ def main():
     
     elif page == "Company Advanced Details":
         page_title(st, "Technicals", "Moving averages and MACD")
-        snp500 = pd.read_csv("./Datasets/SP500.csv")
-        symbols = snp500['Symbol'].sort_values().tolist()   
-
-        ticker = st.sidebar.selectbox(
-            'Choose a S&P 500 Stock',
-            symbols)
 
         def calcMovingAverage(data, size):
             df = data.copy()
@@ -1032,12 +1050,6 @@ def main():
         page_title(st, "News & sentiment", "Headlines and VADER scores from Finviz")
         st.image('https://www.visitashland.com/files/latestnews.jpg', width=250, use_container_width=True)
 
-        snp500 = pd.read_csv("./Datasets/SP500.csv")
-        symbols = snp500['Symbol'].sort_values().tolist()   
-
-        ticker = st.sidebar.selectbox(
-            'Choose a S&P 500 Stock',
-            symbols)
 
         if st.button("Click here to See Latest News about " + ticker):
             st.header('Latest News') 
@@ -1104,12 +1116,6 @@ def main():
 
 
     elif page == "Company Basic Details":
-        snp500 = pd.read_csv("./Datasets/SP500.csv")
-        symbols = snp500['Symbol'].sort_values().tolist()   
-
-        ticker = st.sidebar.selectbox(
-            'Choose a S&P 500 Stock',
-            symbols)
 
         try:
             info = cached_company_info(ticker)
