@@ -386,25 +386,36 @@ def inject_global_css(st):
         }
 
         .news-item {
-            padding: 0.8rem 0;
-            border-bottom: 1px solid rgba(128,128,128,0.2);
+            padding: 1rem 0;
+            border-bottom: 1px solid rgba(128,128,128,0.15);
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+            text-align: left;
         }
 
         .news-item:last-child {
             border-bottom: none;
         }
 
+        .news-header-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+
         .news-headline {
-            font-size: 0.92rem;
+            font-size: 0.95rem;
             color: var(--text-color);
             font-weight: 600;
-            line-height: 1.5;
+            line-height: 1.4;
+            margin-top: 0.2rem;
         }
 
         .news-meta {
             font-size: 0.78rem;
             opacity: 0.65;
-            margin-top: 0.2rem;
         }
 
         [data-testid="stDataFrame"] {
