@@ -15,7 +15,7 @@ NAV_DEFINITION = [
     ("Company Basic Details", "📋", "Company profile"),
     ("Company Advanced Details", "📊", "Technicals"),
     ("Google Trends with Forecast", "🔎", "Search trends"),
-    ("Twitter Trends", "𝕏", "Social trends"),
+    ("Social Media Trends", "💬", "Social trends"),
     ("Meeting Summarization", "🎙️", "Meeting notes"),
     ("Stock Future Prediction", "🔮", "Forecast"),
 ]
