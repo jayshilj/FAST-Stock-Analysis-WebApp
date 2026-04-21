@@ -10,6 +10,7 @@ APP_BRAND_TAGLINE = "Real-time market insights"
 NAV_DEFINITION = [
     ("Dashboard", "✨", "Dashboard"),
     ("About the Project", "🏠", "Overview"),
+    ("Agentic Research Bot", "🤖", "Agentic Bots"),
     ("Live News Sentiment", "📰", "News & sentiment"),
     ("Company Basic Details", "📋", "Company profile"),
     ("Company Advanced Details", "📊", "Technicals"),
