@@ -13,3 +13,4 @@ openpyxl
 tqdm
 vaderSentiment
 statsmodels
+google-genai
