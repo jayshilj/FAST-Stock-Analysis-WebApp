@@ -1006,6 +1006,35 @@ def main():
             import requests
             import time
             children = []
+            
+            # Check if PRAW credentials are in secrets (for Streamlit Cloud)
+            has_praw_secrets = False
+            try:
+                if "reddit" in st.secrets and "client_id" in st.secrets["reddit"]:
+                    has_praw_secrets = True
+            except Exception:
+                pass
+                
+            if has_praw_secrets:
+                try:
+                    import praw
+                    reddit = praw.Reddit(
+                        client_id=st.secrets["reddit"]["client_id"],
+                        client_secret=st.secrets["reddit"]["client_secret"],
+                        user_agent=st.secrets["reddit"].get("user_agent", f"FAST-Stock-Analysis App for {ticker}")
+                    )
+                    subreddit = reddit.subreddit("wallstreetbets+stocks+investing")
+                    for submission in subreddit.search(ticker, sort="new", limit=100):
+                        children.append({
+                            "data": {
+                                "title": submission.title,
+                                "selftext": submission.selftext
+                            }
+                        })
+                    return children
+                except Exception as e:
+                    pass # Fallback to unauthenticated request
+                    
             after = None
             for _ in range(5):
                 url = f"https://www.reddit.com/r/wallstreetbets+stocks+investing/search.json?q={ticker}&restrict_sr=on&sort=new&limit=100"
