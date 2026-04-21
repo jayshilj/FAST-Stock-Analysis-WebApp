@@ -1,6 +1,10 @@
 ## Project
 ### FAST - Financial Analytics with Stock Prediction and Timeseries Forecasting
-​
+
+## 🚀 Recent Updates
+- **Agentic Research Bot:** Integrated a conversational AI module natively into the dashboard. It features a fully dynamic multi-model setup allowing users to seamlessly toggle between **Google Gemini (2.5 Flash)** and **Perplexity (Sonar)** right from the UI without hardcoded keys. It dynamically injects real-time market contexts (price, P/E, news headlines) to ground the AI's deductions.
+- **Real-Time Social Media Sentiment:** Migrated the deprecated Twitter feed to a highly robust **StockTwits & Reddit Data Pipeline**. It paginates 500 records deep across both networks natively. The pipeline features dynamic Cloudflare failover, real-time VADER NLP Sentiment Charting (Bullish/Bearish plotting), and an aggressive algorithm for rendering clean, dense financial WordClouds.
+
 ## Project Report:
 https://codelabs-preview.appspot.com/?file_id=1qxniFjwkDir6NT17KkvS1zDbmIgawcrEEwbbfCtAk8k#1
 ​
@@ -11,7 +15,7 @@ https://codelabs-preview.appspot.com/?file_id=11_uaC--B3Yz0_ux-d8Pb0SZlrfnj4xPv_
 ​
 ## Web Application:
 ### Streamlit App
-http://ec2-18-232-35-95.compute-1.amazonaws.com:8501/
+https://jayshilj-fast-stock-analysis-webapp-app-5bwvwk.streamlit.app/
 ### Flask App
 http://ec2-18-232-35-95.compute-1.amazonaws.com:5000/
 
