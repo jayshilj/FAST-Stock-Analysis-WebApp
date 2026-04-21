@@ -959,33 +959,210 @@ def main():
                 except:
                     st.text("Please Enter a valid Decimal value like 0.01")
 
-    elif page == "Twitter Trends":
-        page_title(st, "Social trends", "Interest-over-time style chart for your keyword")
-        st.write("""
-        # Welcome to Twitter Sentiment App
-        ### This app predicts the **Twitter Sentiments** you want!
-        """)
-        st.image('https://assets.teenvogue.com/photos/56b4f21327a088e24b967bb6/3:2/w_531,h_354,c_limit/twitter-gifs.gif',width=350, use_container_width=True)
-        ################# Twitter API Connection #######################
+    elif page == "Social Media Trends":                                            
+        page_title(st, "Social Media Trends", f"Real-time retail sentiment and chatter for {ticker}")
+
+        @st.cache_data(ttl=300)
+        def get_stocktwits_data(ticker):
+            import requests
+            import time
+            messages = []
+            max_id = None
+            for _ in range(3): # Lower loop depth to prevent Cloudflare bans
+                url = f"https://api.stocktwits.com/api/2/streams/symbol/{ticker}.json"
+                if max_id:
+                    url += f"?max={max_id}"
+                try:
+                    res = requests.get(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'})
+                    if res.status_code == 200:
+                        data = res.json()
+                        messages.extend(data.get('messages', []))
+                        cursor = data.get('cursor', {})
+                        if cursor and cursor.get('max'):
+                            max_id = cursor['max']
+                        else:
+                            break
+                        time.sleep(1)
+                    else:
+                        break
+                except:
+                    break
+            
+            # Failover if Cloudflare blocks the request
+            if len(messages) == 0:
+                try:
+                    df = get_news_sentiment_df(ticker)
+                    if df is not None and not df.empty:
+                        for _, row in df.iterrows():
+                            text = str(row.get('headline', ''))
+                            if text:
+                                messages.append({'body': text})
+                except:
+                    pass
+            return messages
+
+        @st.cache_data(ttl=300)
+        def get_reddit_data(ticker):
+            import requests
+            import time
+            children = []
+            after = None
+            for _ in range(5):
+                url = f"https://www.reddit.com/r/wallstreetbets+stocks+investing/search.json?q={ticker}&restrict_sr=on&sort=new&limit=100"
+                if after:
+                    url += f"&after={after}"
+                try:
+                    res = requests.get(url, headers={'User-Agent': 'FAST-Stock-Analysis/1.0'})
+                    if res.status_code == 200:
+                        data = res.json().get('data', {})
+                        children.extend(data.get('children', []))
+                        after = data.get('after')
+                        if not after:
+                            break
+                        time.sleep(1)
+                    else:
+                        break
+                except:
+                    break
+            return children
+
+        with st.spinner(f"Pulling live social data for {ticker}..."):
+            st_data = get_stocktwits_data(ticker)
+            reddit_data = get_reddit_data(ticker)
+
+        all_text = []
+        sentiments = {"Bullish": 0, "Bearish": 0, "Neutral": 0}
         
-        st.sidebar.write("""
-        ## Choose a keyword and a prediction period 
-        """)
-        keyword = st.sidebar.text_input("Keyword", "Amazon")
-        periods = st.sidebar.slider('Prediction time in days:', 7, 365, 90)
-
-        st.subheader(f"Interest over time: **{keyword}**")
-
-        df = get_data(keyword)
-        forecast, fig1, fig2 = make_pred(df, periods, show_fallback_caption=False)
-
-        st.pyplot(fig1)
-        st.write("Trends over the years and months")
-        st.pyplot(fig2)
-
-
-
+        from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+        analyzer = SentimentIntensityAnalyzer()
         
+        st_messages = []
+        for msg in st_data:
+            text = msg.get('body', '')
+            if text:
+                all_text.append(text)
+                st_messages.append(text)
+                
+            entities = msg.get('entities', {})
+            sent = entities.get('sentiment', {})
+            if sent and isinstance(sent, dict) and sent.get('basic'):
+                basic = sent['basic']
+                if basic == 'Bullish':
+                    sentiments['Bullish'] += 1
+                elif basic == 'Bearish':
+                    sentiments['Bearish'] += 1
+                else:
+                    sentiments['Neutral'] += 1
+            else:
+                score = analyzer.polarity_scores(text)['compound']
+                if score >= 0.05:
+                    sentiments['Bullish'] += 1
+                elif score <= -0.05:
+                    sentiments['Bearish'] += 1
+                else:
+                    sentiments['Neutral'] += 1
+                    
+        reddit_messages = []
+        for post in reddit_data:
+            post_data = post.get('data', {})
+            title = post_data.get('title', '')
+            text = post_data.get('selftext', '')
+            combined = f"{title}. {text}"
+            if combined.strip() != ".":
+                all_text.append(combined)
+                reddit_messages.append(title)
+                
+                score = analyzer.polarity_scores(combined)['compound']
+                if score >= 0.05:
+                    sentiments['Bullish'] += 1
+                elif score <= -0.05:
+                    sentiments['Bearish'] += 1
+                else:
+                    sentiments['Neutral'] += 1
+
+        if not all_text:
+            st.info(f"No recent social chatter found for {ticker}.")
+        else:
+            col1, col2 = st.columns([1, 1.5])
+            
+            with col1:
+                render_section_card_start(st, "Sentiment Distribution", "Overall momentum")
+                import plotly.express as px
+                import pandas as pd
+                
+                sent_df = pd.DataFrame(list(sentiments.items()), columns=['Sentiment', 'Count'])
+                if sent_df['Count'].sum() == 0:
+                    st.write("Not enough data to calculate sentiment.")
+                else:
+                    fig = px.pie(sent_df, values='Count', names='Sentiment', 
+                                 hole=0.6,
+                                 color='Sentiment',
+                                 color_discrete_map={'Bullish': '#22c55e', 'Bearish': '#ef4444', 'Neutral': '#94a3b8'})
+                    fig.update_layout(margin=dict(t=20, b=20, l=20, r=20), plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)')
+                    st.plotly_chart(fig, use_container_width=True, theme="streamlit")
+                render_section_card_end(st)
+                
+            with col2:
+                render_section_card_start(st, "Buzzwords Map", "Trending topics")
+                from wordcloud import WordCloud
+                import matplotlib.pyplot as plt
+                
+                full_text = " ".join(all_text).replace('\n', ' ')
+                
+                from wordcloud import STOPWORDS
+                import re
+                
+                custom_stop = set(STOPWORDS)
+                company_name_parts = []
+                try:
+                    cname = snp500[snp500['Symbol'] == ticker]['Security'].values[0]
+                    cname_clean = re.sub(r'[^\w\s]', '', cname)
+                    company_name_parts = [p.lower() for p in cname_clean.split()]
+                except:
+                    pass
+                    
+                generic_finance_and_platform = [
+                    ticker.lower(), ticker.upper(), 'stock', 'shares', 'share', 'market', 'amp', 'https', 'co', 
+                    'reddit', 'wallstreetbets', 'stocktwits', 'inc', 'corp', 'company', 'buy', 'sell', 
+                    'hold', 'today', 'tomorrow', 'yesterday', 'day', 'week', 'month', 'year', 'will', 
+                    'now', 'just', 'like', 'one', 'good', 'time', 'look', 'think', 'see', 'go', 'going',
+                    'really', 'much', 'well', 'say', 'know', 'make', 'people', 'new', 'even', 'want',
+                    'get', 'got', 'let', 'us', 'com', 'www', 'price', 'prices', 'money', 'investing', 
+                    'investor', 'investors', 'trading', 'trader', 'traders', 'bull', 'bear', 'calls', 'puts'
+                ]
+                custom_stop.update(generic_finance_and_platform + company_name_parts)
+                
+                wc = WordCloud(width=600, height=350, background_color='rgba(255,255,255,0)', mode='RGBA', stopwords=custom_stop, colormap='viridis', max_words=80).generate(full_text)
+                
+                fig_wc, ax_wc = plt.subplots(figsize=(6, 3.5), facecolor='none')
+                ax_wc.imshow(wc, interpolation='bilinear')
+                ax_wc.axis('off')
+                st.pyplot(fig_wc)
+                render_section_card_end(st)
+                
+            st.markdown("---")
+            st.subheader(f"Live Social Feed: **{ticker}**")
+            feed_col1, feed_col2 = st.columns(2)
+            
+            with feed_col1:
+                st.markdown("#### 📈 StockTwits & News Feed")
+                with st.container(height=400):
+                    if st_messages:
+                        for msg in st_messages[:20]:
+                            with st.chat_message("user", avatar="💬"):
+                                st.write(msg)
+                    else:
+                        st.write("No recent messages.")
+                        
+            with feed_col2:
+                st.markdown("#### 👽 Reddit Feed (WallStreetBets & Stocks)")
+                with st.container(height=400):
+                    if reddit_messages:
+                        for msg in reddit_messages[:20]:
+                            with st.chat_message("user", avatar="👽"):
+                                st.write(msg)
+                    else:
+                        st.write("No recent discussions.")
     elif page == "Stock Future Prediction":
         page_title(st, "Stock forecast", "Historical prices and forward projection")
 
