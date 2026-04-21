@@ -139,6 +139,99 @@ def main():
 
         return stats
 
+    def detect_tickers(message, known_symbols):
+        import re
+        words = re.findall(r'\b[A-Z]{1,5}\b', message)
+        words += [w.strip('$') for w in re.findall(r'\$[A-Z]{1,5}\b', message.upper())]
+        detected = list(set([w for w in words if w in known_symbols]))
+        return detected
+
+    def build_stock_context(ticker):
+        info = cached_company_info(ticker)
+        if not info:
+            return f"No info found for {ticker}."
+        
+        price = info.get("regularMarketPrice") or info.get("currentPrice") or "N/A"
+        pe = info.get("trailingPE", "N/A")
+        mcap = info.get("marketCap", "N/A")
+        sector = info.get("sector", "N/A")
+        
+        try:
+            news_df = get_news_sentiment_df(ticker)
+        except Exception:
+            news_df = None
+            
+        news_summary = ""
+        if news_df is not None and not news_df.empty:
+            headlines = news_df.head(5)["headline"].tolist()
+            news_summary = "\n".join([f"- {h}" for h in headlines])
+        
+        return f"""
+        Ticker: {ticker}
+        Sector: {sector}
+        Price: {price}
+        P/E Ratio: {pe}
+        Market Cap: {mcap}
+
+        Recent News Headlines:
+        {news_summary}
+        """
+
+    def call_llm(model_provider, api_key, system_prompt, messages):
+        if not api_key:
+            return f"Please enter your {model_provider.split(' ')[0]} API key in the sidebar configuration."
+            
+        api_key = api_key.strip()
+            
+        if model_provider == "Google Gemini (2.5 Flash)":
+            try:
+                from google import genai
+                from google.genai import types
+                
+                client = genai.Client(api_key=api_key)
+                formatted_contents = []
+                for msg in messages:
+                    if msg['role'] == 'system':
+                        continue
+                    role = 'user' if msg['role'] == 'user' else 'model'
+                    formatted_contents.append(
+                        types.Content(role=role, parts=[types.Part.from_text(text=msg['content'])])
+                    )
+                response = client.models.generate_content(
+                    model="gemini-2.5-flash",
+                    contents=formatted_contents,
+                    config=types.GenerateContentConfig(
+                        system_instruction=system_prompt,
+                    )
+                )
+                return response.text
+            except Exception as e:
+                return f"Error communicating with Gemini API: {str(e)}"
+                
+        elif model_provider == "Perplexity (Sonar)":
+            try:
+                import requests
+                url = "https://api.perplexity.ai/chat/completions"
+                payload = {
+                    "model": "sonar",
+                    "messages": [{"role": "system", "content": system_prompt}] + messages
+                }
+                headers = {
+                    "accept": "application/json",
+                    "content-type": "application/json",
+                    "authorization": f"Bearer {api_key}"
+                }
+                response = requests.post(url, json=payload, headers=headers)
+                if response.status_code == 200:
+                    return response.json()['choices'][0]['message']['content']
+                else:
+                    return f"Error communicating with Perplexity API. Status code: {response.status_code}, Response: {response.text}"
+            except Exception as e:
+                return f"Error communicating with Perplexity API: {str(e)}"
+        
+        return "Unknown model provider selected."
+
+
     def render_news_preview(news_df):
         if news_df is None or news_df.empty:
             st.info("No recent news available.")
@@ -493,13 +586,10 @@ def main():
     if "global_ticker" not in st.session_state:
         st.session_state["global_ticker"] = "AAPL"
 
-    current_idx = symbols.index(st.session_state["global_ticker"]) if st.session_state["global_ticker"] in symbols else 0
-
     st.sidebar.markdown("---")
     ticker = st.sidebar.selectbox(
         "Choose a S&P 500 Stock",
         symbols,
-        index=current_idx,
         key="global_ticker",
     )
 
@@ -717,6 +807,95 @@ def main():
             color_continuous_scale="Sunsetdark",
         )
         st.plotly_chart(fig_season, use_container_width=True, theme="streamlit")
+
+    elif page == "Agentic Research Bot":
+        page_title(st, "Agentic Bots", "AI-powered stock analysis using live market data")
+        
+        if "chat_history" not in st.session_state:
+            st.session_state.chat_history = []
+            
+        col1, col2 = st.columns([3, 1])
+        with col2:
+            st.markdown("### ⚙️ AI Configuration")
+            model_provider = st.selectbox(
+                "Select Model Provider", 
+                ["Google Gemini (2.5 Flash)", "Perplexity (Sonar)"]
+            )
+            
+            key_name = "gemini_key" if model_provider == "Google Gemini (2.5 Flash)" else "perplexity_key"
+            if key_name not in st.session_state:
+                st.session_state[key_name] = ""
+                
+            api_key = st.text_input(
+                f"{model_provider.split(' ')[0]} API Key:", 
+                type="password",
+                value=st.session_state[key_name],
+                placeholder="sk-..." if "Perplexity" in model_provider else "AIza..."
+            )
+            if api_key != st.session_state[key_name]:
+                st.session_state[key_name] = api_key
+                
+            st.markdown("---")
+            
+            st.markdown("### Predefined Questions")
+            if st.button(f"Analyze {ticker}"):
+                st.session_state.preset_question = f"Analyze {ticker} and give me the bull and bear cases."
+            if st.button(f"Summarize news for {ticker}"):
+                st.session_state.preset_question = f"Summarize the recent news for {ticker}."
+            if st.button(f"Is {ticker} overvalued?"):
+                st.session_state.preset_question = f"Is {ticker} overvalued based on its P/E ratio and recent price trend?"
+                
+            st.markdown("---")
+            render_right_rail_placeholder(st)
+                
+        with col1:
+            chat_container = st.container(height=500)
+            with chat_container:
+                for msg in st.session_state.chat_history:
+                    if msg["role"] != "system":
+                        with st.chat_message(msg["role"]):
+                            st.markdown(msg["content"])
+            
+            user_input = st.chat_input("Ask me anything about a stock...")
+            
+            if "preset_question" in st.session_state:
+                user_input = st.session_state.preset_question
+                del st.session_state.preset_question
+                
+            if user_input:
+                st.session_state.chat_history.append({"role": "user", "content": user_input})
+                with chat_container:
+                    with st.chat_message("user"):
+                        st.markdown(user_input)
+                
+                with st.spinner("AI is thinking..."):
+                    if not api_key:
+                        response_text = f"Please enter your {model_provider.split(' ')[0]} API key in the configuration sidebar to continue."
+                    else:
+                        detected = detect_tickers(user_input, symbols)
+                        if not detected:
+                            detected = [ticker]
+                            
+                        context = ""
+                        for t in detected:
+                            context += build_stock_context(t) + "\n"
+                            
+                        sys_prompt = f"""
+                        You are a stock research analyst assistant embedded in a financial dashboard.
+                        You MUST only reference the data provided below — never invent prices, metrics, or news.
+                        Structure your response with clear markdown headings.
+                        End with a brief disclaimer that this is not financial advice.
+                        
+                        === LIVE MARKET DATA ===
+                        {context}
+                        === END DATA ===
+                        """
+                        
+                        response_text = call_llm(model_provider, api_key, sys_prompt, st.session_state.chat_history[-5:])
+                    
+                st.session_state.chat_history.append({"role": "assistant", "content": response_text})
+                
+                st.rerun()
 
     elif page == "About the Project":
         page_title(st, "Overview", "Data sources, architecture, and embedded dashboard")
