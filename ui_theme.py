@@ -615,11 +615,26 @@ def render_metric_strip(st, info):
     mcap = info.get("marketCap")
     pe = info.get("forwardPE") or info.get("trailingPE")
     divy = info.get("dividendYield")
-
-    if isinstance(divy, float) and 0 < divy < 1:
-        divy_disp = "{:.2f}%".format(divy * 100)
-    else:
-        divy_disp = _fmt_metric(divy) if divy not in (None, "N/A") else "—"
+    trailing = info.get("trailingAnnualDividendYield")
+    
+    divy_disp = "—"
+    if isinstance(divy, (int, float)):
+        # Heuristic to detect percentage vs decimal
+        if isinstance(trailing, (int, float)) and trailing > 0:
+            ratio = divy / trailing
+            if 80 < ratio < 120:
+                # divy is likely a percentage number, trailing is decimal
+                divy_disp = "{:.2f}%".format(divy)
+            elif 0.8 < ratio < 1.2:
+                # both are in same format
+                divy_disp = "{:.2f}%".format(divy * 100 if divy < 0.2 else divy)
+            else:
+                divy_disp = "{:.2f}%".format(divy if divy > 0.1 else divy * 100)
+        else:
+            # Fallback if no trailing info
+            divy_disp = "{:.2f}%".format(divy if divy > 0.1 else divy * 100)
+    elif isinstance(trailing, (int, float)):
+        divy_disp = "{:.2f}%".format(trailing * 100)
 
     c1, c2, c3, c4 = st.columns(4)
     with c1:

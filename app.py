@@ -1533,22 +1533,30 @@ def main():
             st.markdown('** Business summary**')
             st.info(info.get('longBusinessSummary', 'N/A'))
 
+            def _fmt_p(v, is_ratio=False):
+                if v is None or v == 'N/A': return '—'
+                try:
+                    f = float(v)
+                    if is_ratio or abs(f) < 0.1: return f"{f*100:.2f}%"
+                    return f"{f:.2f}%"
+                except: return str(v)
+
             fundInfo = {
                 'Enterprise Value (USD)': info.get('enterpriseValue', 'N/A'),
                 'Enterprise To Revenue Ratio': info.get('enterpriseToRevenue', 'N/A'),
                 'Enterprise To Ebitda Ratio': info.get('enterpriseToEbitda', 'N/A'),
                 'Net Income (USD)': info.get('netIncomeToCommon', 'N/A'),
-                'Profit Margin Ratio': info.get('profitMargins', 'N/A'),
+                'Profit Margin Ratio (%)': _fmt_p(info.get('profitMargins'), True),
                 'Forward PE Ratio': info.get('forwardPE', 'N/A'),
                 'PEG Ratio': info.get('pegRatio', 'N/A'),
                 'Price to Book Ratio': info.get('priceToBook', 'N/A'),
                 'Forward EPS (USD)': info.get('forwardEps', 'N/A'),
                 'Beta ': info.get('beta', 'N/A'),
                 'Book Value (USD)': info.get('bookValue', 'N/A'),
-                'Dividend Rate (%)': info.get('dividendRate', 'N/A'),
-                'Dividend Yield (%)': info.get('dividendYield', 'N/A'),
-                'Five year Avg Dividend Yield (%)': info.get('fiveYearAvgDividendYield', 'N/A'),
-                'Payout Ratio': info.get('payoutRatio', 'N/A')
+                'Dividend Rate (USD)': info.get('dividendRate', 'N/A'),
+                'Dividend Yield (%)': _fmt_p(info.get('dividendYield')),
+                'Five year Avg Dividend Yield (%)': _fmt_p(info.get('fiveYearAvgDividendYield')),
+                'Payout Ratio (%)': _fmt_p(info.get('payoutRatio'), True)
             }
 
             fundDF = pd.DataFrame.from_dict(fundInfo, orient='index', columns=['Value'])
