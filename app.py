@@ -634,12 +634,8 @@ def main():
         key="global_ticker",
     )
 
-    st.sidebar.markdown("---")
-    forecast_model = st.sidebar.selectbox(
-        "Forecasting Model",
-        ["Holt-Winters", "SARIMA", "Monte Carlo (Stochastic)"],
-        help="Choose the model used for future predictions. Monte Carlo introduces realistic stochastic patterns (ups and downs)."
-    )
+    if "forecast_model" not in st.session_state:
+        st.session_state["forecast_model"] = "Holt-Winters"
 
     if page == "Dashboard":
         render_dashboard_hero(st)
@@ -747,7 +743,18 @@ def main():
             render_section_card_end(st)
 
         with row2_mid:
-            render_section_card_start(st, "Future AI Outlook", f"Projected Trends ({forecast_model})")
+            render_section_card_start(st, "Future AI Outlook", "Projected Trends")
+            
+            c_fm1, c_fm2 = st.columns([1, 1])
+            with c_fm1:
+                forecast_model = st.selectbox(
+                    "Model",
+                    ["Holt-Winters", "SARIMA", "Monte Carlo (Stochastic)"],
+                    key="dashboard_forecast_model",
+                    index=["Holt-Winters", "SARIMA", "Monte Carlo (Stochastic)"].index(st.session_state["forecast_model"])
+                )
+                st.session_state["forecast_model"] = forecast_model
+            
             df_train = price_df[["Date", price_col]].copy()
             df_train = df_train.rename(columns={"Date": "ds", price_col: "y"})
             df_train["ds"] = pd.to_datetime(df_train["ds"], errors="coerce")
@@ -806,6 +813,14 @@ def main():
         """)
         keyword = st.sidebar.text_input("Keyword", "Amazon")
         periods = st.sidebar.slider('Prediction time in days:', 7, 365, 90)
+        
+        forecast_model = st.sidebar.selectbox(
+            "Forecasting Model",
+            ["Holt-Winters", "SARIMA", "Monte Carlo (Stochastic)"],
+            key="trends_forecast_model",
+            index=["Holt-Winters", "SARIMA", "Monte Carlo (Stochastic)"].index(st.session_state["forecast_model"])
+        )
+        st.session_state["forecast_model"] = forecast_model
         
 
         # main section
@@ -1239,7 +1254,18 @@ def main():
 
         st.image('https://media2.giphy.com/media/JtBZm3Getg3dqxK0zP/giphy-downsized-large.gif', width=250, use_container_width=True)
 
-        n_years = st.slider('Years of prediction:', 1, 4)
+        col_f1, col_f2 = st.columns([1, 1])
+        with col_f1:
+            n_years = st.slider('Years of prediction:', 1, 4)
+        with col_f2:
+            forecast_model = st.selectbox(
+                "Forecasting Model",
+                ["Holt-Winters", "SARIMA", "Monte Carlo (Stochastic)"],
+                key="stock_forecast_model",
+                index=["Holt-Winters", "SARIMA", "Monte Carlo (Stochastic)"].index(st.session_state["forecast_model"])
+            )
+            st.session_state["forecast_model"] = forecast_model
+
         period = n_years * 365
 
         data_load_state = st.text('Loading data...')
@@ -1268,24 +1294,14 @@ def main():
         df_train['ds'] = pd.to_datetime(df_train['ds'], errors='coerce')
         df_train['y'] = pd.to_numeric(df_train['y'], errors='coerce').ffill().bfill()
 
-        st.caption('Using Holt-Winters Exponential Smoothing model.')
+        st.caption(f'Using {forecast_model} model for forward projection.')
         d_train = df_train.dropna(subset=['ds', 'y']).set_index('ds').sort_index()
+        
+        # Ensure frequency for SARIMA
+        if not d_train.index.freq:
+            d_train = d_train.asfreq('D').ffill()
 
-        try:
-            from statsmodels.tsa.holtwinters import ExponentialSmoothing
-            model = ExponentialSmoothing(d_train['y'], trend='add', seasonal=None, initialization_method="estimated")
-            fit_model = model.fit()
-            yhat_future = fit_model.forecast(int(period))
-        except Exception:
-            t0 = d_train.index.min()
-            x = (d_train.index - t0).days.values.astype(float)
-            y_val = d_train['y'].values.astype(float)
-            coef = np.polyfit(x, y_val, 1)
-            poly = np.poly1d(coef)
-            last = d_train.index.max()
-            future_dates = pd.date_range(last + pd.Timedelta(days=1), periods=int(period), freq="D")
-            x_f = (pd.to_datetime(future_dates) - t0).days.values.astype(float)
-            yhat_future = pd.Series(np.maximum(poly(x_f), 1e-6), index=future_dates)
+        yhat_future = run_forecast_model(d_train['y'], period, forecast_model)
 
         all_ds_future = pd.date_range(d_train.index.max() + pd.Timedelta(days=1), periods=int(period), freq="D")
         forecast = pd.DataFrame({"ds": all_ds_future, "yhat": np.maximum(yhat_future.values, 1e-6)})
