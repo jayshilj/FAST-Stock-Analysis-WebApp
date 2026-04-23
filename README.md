@@ -18,7 +18,7 @@ FAST has evolved into a comprehensive **Agentic Financial Intelligence Platform*
 ## ✨ Key Features
 
 - **Real-time Market Dashboard**: Track prices, daily moves, and volume with interactive technical indicators (SMA 20/50).
-- **Advanced Forecasting Engine**: Dual-model support featuring **Holt-Winters** and **SARIMA** for high-precision time-series predictions.
+- **Advanced Forecasting Engine**: Triple-model support featuring **Holt-Winters**, **SARIMA**, and **Monte Carlo (Geometric Brownian Motion)** for both smooth trends and organic, stochastic price patterns.
 - **Google Trends Integration**: Analyze and forecast search interest for any keyword with seasonal awareness.
 - **Sentiment Analysis**: Live news sentiment tracking from FinViz, visualized with interactive pie charts and sentiment badges.
 - **Financial Audio Transcription**: (Legacy Support) Infrastructure for transcribing and summarizing financial meeting audio via Amazon Transcribe.

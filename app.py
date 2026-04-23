@@ -516,18 +516,33 @@ def main():
         """
         try:
             if model_type == "SARIMA":
-                # Default (1,1,1)x(1,1,1,7) for daily data with weekly seasonality
-                # Simple configuration for robustness and speed in interactive app
+                # Detect periodicity: 7 for daily trends, 30 for monthly patterns
+                # If we have enough data (at least 2 full cycles)
+                s = 7 if len(y_series) < 60 else 30
                 model = SARIMAX(
                     y_series, 
                     order=(1, 1, 1), 
-                    seasonal_order=(1, 1, 1, 7),
+                    seasonal_order=(1, 1, 1, s),
                     enforce_stationarity=False,
                     enforce_invertibility=False
                 )
                 fit_model = model.fit(disp=False)
                 forecast = fit_model.get_forecast(steps=int(periods))
                 return forecast.predicted_mean
+            elif model_type == "Monte Carlo (Stochastic)":
+                # Geometric Brownian Motion for "organic" patterns
+                returns = y_series.pct_change().dropna()
+                mu = returns.mean()
+                sigma = returns.std()
+                dt = 1
+                S0 = y_series.iloc[-1]
+                epsilon = np.random.normal(0, 1, int(periods))
+                path = np.zeros(int(periods))
+                # First step from S0
+                path[0] = S0 * np.exp((mu - 0.5 * sigma**2) * dt + sigma * epsilon[0] * np.sqrt(dt))
+                for t in range(1, int(periods)):
+                    path[t] = path[t-1] * np.exp((mu - 0.5 * sigma**2) * dt + sigma * epsilon[t] * np.sqrt(dt))
+                return pd.Series(path, index=pd.date_range(y_series.index.max() + pd.Timedelta(days=1), periods=int(periods), freq='D'))
             else:
                 # Holt-Winters fallback
                 model = ExponentialSmoothing(
@@ -622,8 +637,8 @@ def main():
     st.sidebar.markdown("---")
     forecast_model = st.sidebar.selectbox(
         "Forecasting Model",
-        ["Holt-Winters", "SARIMA"],
-        help="Choose the model used for future predictions. SARIMA accounts for seasonality and autocorrelation more robustly."
+        ["Holt-Winters", "SARIMA", "Monte Carlo (Stochastic)"],
+        help="Choose the model used for future predictions. Monte Carlo introduces realistic stochastic patterns (ups and downs)."
     )
 
     if page == "Dashboard":
