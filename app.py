@@ -68,6 +68,7 @@ def main():
     import matplotlib.pyplot as plt
 
     from statsmodels.tsa.holtwinters import ExponentialSmoothing
+    from statsmodels.tsa.statespace.sarimax import SARIMAX
     from pytrends.request import TrendReq
 
     import json
@@ -506,17 +507,53 @@ def main():
         df.columns = ["ds", "y"]
         return df
 
-    def make_pred(df, periods, show_fallback_caption=True):
+    def run_forecast_model(y_series, periods, model_type="Holt-Winters"):
         """
-        Forecast using Holt-Winters Exponential Smoothing.
-        Google Trends values are expected to be between 0 and 100.
+        Unified forecasting engine. 
+        y_series: pandas Series with DatetimeIndex
+        periods: int, number of steps to forecast
+        model_type: "Holt-Winters" or "SARIMA"
         """
-        from statsmodels.tsa.holtwinters import ExponentialSmoothing
-        import plotly.graph_objects as go
-        from plotly.subplots import make_subplots
+        try:
+            if model_type == "SARIMA":
+                # Default (1,1,1)x(1,1,1,7) for daily data with weekly seasonality
+                # Simple configuration for robustness and speed in interactive app
+                model = SARIMAX(
+                    y_series, 
+                    order=(1, 1, 1), 
+                    seasonal_order=(1, 1, 1, 7),
+                    enforce_stationarity=False,
+                    enforce_invertibility=False
+                )
+                fit_model = model.fit(disp=False)
+                forecast = fit_model.get_forecast(steps=int(periods))
+                return forecast.predicted_mean
+            else:
+                # Holt-Winters fallback
+                model = ExponentialSmoothing(
+                    y_series, 
+                    trend='add', 
+                    seasonal=None, 
+                    initialization_method="estimated"
+                )
+                fit_model = model.fit()
+                return fit_model.forecast(int(periods))
+        except Exception:
+            # Linear trend fallback if model fails
+            t0 = 0
+            x = np.arange(len(y_series))
+            y_vals = y_series.values.astype(float)
+            coef = np.polyfit(x, y_vals, 1)
+            poly = np.poly1d(coef)
+            x_f = np.arange(len(y_series), len(y_series) + int(periods))
+            return pd.Series(poly(x_f), index=pd.date_range(y_series.index.max() + pd.Timedelta(days=1), periods=int(periods), freq='D'))
 
+    def make_pred(df, periods, model_type="Holt-Winters", show_fallback_caption=True):
+        """
+        Forecast using the selected model.
+        """
         if show_fallback_caption:
-            st.caption('Using Holt-Winters Exponential Smoothing model.')
+            st.caption(f'Using {model_type} model for precision forecasting.')
 
         d = df.copy()
         d['ds'] = pd.to_datetime(d['ds'], errors='coerce')
@@ -528,23 +565,12 @@ def main():
             st.stop()
 
         d_idx = d.set_index('ds').sort_index()
+        # Frequency is important for SARIMA
+        if not d_idx.index.freq:
+            d_idx = d_idx.asfreq('D').ffill()
         
-        try:
-            model = ExponentialSmoothing(d_idx['y'], trend='add', seasonal=None, initialization_method="estimated")
-            fit_model = model.fit()
-            yhat_future = fit_model.forecast(int(periods))
-        except Exception as e:
-            t0 = d_idx.index.min()
-            x = (d_idx.index - t0).days.values.astype(float)
-            y_vals = d_idx['y'].values.astype(float)
-            coef = np.polyfit(x, y_vals, 1)
-            poly = np.poly1d(coef)
-            last = d_idx.index.max()
-            future_dates = pd.date_range(last + pd.Timedelta(days=1), periods=int(periods), freq='D')
-            x_f = (pd.to_datetime(future_dates) - t0).days.values.astype(float)
-            yhat_future = pd.Series(np.clip(poly(x_f), 0.0, 100.0), index=future_dates)
-        
-        yhat_future = np.clip(yhat_future, 0, 100) # bounds
+        yhat_future = run_forecast_model(d_idx['y'], periods, model_type)
+        yhat_future = np.clip(yhat_future, 0, 100) # bounds for search trends
 
         last_date = d_idx.index.max()
         future_dates = pd.date_range(start=last_date + pd.Timedelta(days=1), periods=int(periods), freq='D')
@@ -554,7 +580,7 @@ def main():
         fig1 = go.Figure()
         fig1.add_trace(go.Scatter(x=d_idx.index, y=d_idx['y'], mode='lines+markers', name='Actual', marker=dict(size=4, color='#6366F1'), line=dict(color='#6366F1', width=1.5)))
         fig1.add_trace(go.Scatter(x=forecast['ds'], y=forecast['yhat'], mode='lines', name='Forecast', line=dict(color='#F97316', width=3, dash='dot')))
-        fig1.update_layout(title="Search Trend Forecast", xaxis_title="Date", yaxis_title="Interest")
+        fig1.update_layout(title=f"Search Trend Forecast ({model_type})", xaxis_title="Date", yaxis_title="Interest")
 
         fig2 = make_subplots(rows=2, cols=1, subplot_titles=('Monthly Average (Historical)', 'Average by Quarter'), vertical_spacing=0.18)
         
@@ -591,6 +617,13 @@ def main():
         "Choose a S&P 500 Stock",
         symbols,
         key="global_ticker",
+    )
+
+    st.sidebar.markdown("---")
+    forecast_model = st.sidebar.selectbox(
+        "Forecasting Model",
+        ["Holt-Winters", "SARIMA"],
+        help="Choose the model used for future predictions. SARIMA accounts for seasonality and autocorrelation more robustly."
     )
 
     if page == "Dashboard":
@@ -699,7 +732,7 @@ def main():
             render_section_card_end(st)
 
         with row2_mid:
-            render_section_card_start(st, "Future AI Outlook", "Exponential Smoothing (Holt-Winters)")
+            render_section_card_start(st, "Future AI Outlook", f"Projected Trends ({forecast_model})")
             df_train = price_df[["Date", price_col]].copy()
             df_train = df_train.rename(columns={"Date": "ds", price_col: "y"})
             df_train["ds"] = pd.to_datetime(df_train["ds"], errors="coerce")
@@ -707,21 +740,12 @@ def main():
 
             forecast_days = 90
             d_train = df_train.dropna(subset=['ds', 'y']).set_index('ds').sort_index()
-            try:
-                model = ExponentialSmoothing(d_train['y'], trend='add', seasonal=None, initialization_method="estimated")
-                fit_model = model.fit()
-                yhat_future = fit_model.forecast(forecast_days)
-            except Exception:
-                t0 = d_train.index.min()
-                x = (d_train.index - t0).days.values.astype(float)
-                y_val = d_train['y'].values.astype(float)
-                coef = np.polyfit(x, y_val, 1)
-                poly = np.poly1d(coef)
-                last = d_train.index.max()
-                future_dates = pd.date_range(last + pd.Timedelta(days=1), periods=forecast_days, freq="D")
-                x_f = (pd.to_datetime(future_dates) - t0).days.values.astype(float)
-                yhat_future = pd.Series(np.maximum(poly(x_f), 1e-6), index=future_dates)
+            # Frequency is important for SARIMA
+            if not d_train.index.freq:
+                d_train = d_train.asfreq('D').ffill()
 
+            yhat_future = run_forecast_model(d_train['y'], forecast_days, forecast_model)
+            
             all_ds_future = pd.date_range(d_train.index.max() + pd.Timedelta(days=1), periods=forecast_days, freq="D")
             forecast = pd.DataFrame({"ds": all_ds_future, "yhat": np.maximum(yhat_future.values, 1e-6)})
 
@@ -778,7 +802,7 @@ def main():
         st.write("Evolution of interest:", keyword)
 
         df = get_data(keyword)
-        forecast, fig1, fig2 = make_pred(df, periods, show_fallback_caption=True)
+        forecast, fig1, fig2 = make_pred(df, periods, model_type=forecast_model, show_fallback_caption=True)
 
         st.plotly_chart(fig1, use_container_width=True, theme="streamlit")
             
