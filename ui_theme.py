@@ -424,6 +424,41 @@ def inject_global_css(st):
             overflow: hidden;
             border: 1px solid rgba(128,128,128,0.2);
         }
+
+        .sidebar-dev-card {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            border-top: 1px solid rgba(128,128,128,0.2);
+            background: rgba(128,128,128,0.03);
+            border-radius: 16px;
+        }
+        .dev-name {
+            font-size: 0.88rem;
+            font-weight: 700;
+            color: var(--text-color);
+            margin-bottom: 0.6rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        .dev-links {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+        .dev-link {
+            font-size: 0.78rem;
+            color: var(--primary-color) !important;
+            text-decoration: none !important;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            transition: opacity 0.2s;
+            opacity: 0.8;
+        }
+        .dev-link:hover {
+            opacity: 1;
+        }
         </style>
         """,
         unsafe_allow_html=True,
@@ -483,6 +518,20 @@ def render_sidebar_navigation(st):
     st.sidebar.markdown("---")
     st.sidebar.caption("Smart market workspace")
     st.sidebar.caption("News · Forecast · Technicals · Fundamentals")
+
+    st.sidebar.markdown(
+        """
+        <div class="sidebar-dev-card">
+            <div class="dev-name">👨‍💻 Developed by Jayshil Jain</div>
+            <div class="dev-links">
+                <a class="dev-link" href="https://github.com/jayshilj/GeoPulseWebApp" target="_blank">📂 GitHub Repository</a>
+                <a class="dev-link" href="https://www.linkedin.com/in/jayshiljain/" target="_blank">🔗 LinkedIn Profile</a>
+                <a class="dev-link" href="https://www.jayshil.com/" target="_blank">🌐 Personal Website</a>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
     return internal_by_display[choice]
 
