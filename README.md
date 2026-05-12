@@ -4,7 +4,7 @@
   <img src="https://github.com/jayshilj/Team3_CSYE7245_Spring2021/blob/main/Final%20Project/Architecture%20Final%20AWS_FAST.jpg" width="100%" style="border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.15);" />
 </p>
 
-## 🚀 Recent Intelligence Upgrades
+## 🚀 Recent Intelligence Upgrades  
 
 FAST has evolved into a comprehensive **Agentic Financial Intelligence Platform**. Recent updates have integrated state-of-the-art AI and robust data pipelines:
 
