@@ -46,7 +46,11 @@ The platform leverages a hybrid cloud architecture designed for scalability and 
 - **Frontend**: Streamlit with custom CSS and Plotly.
 - **Intelligence**: Google Gemini (via `google-genai`), Perplexity API, and VADER Sentiment.
 - **Data Sources**: Yahoo Finance (`yfinance`), Google Trends (`pytrends`), StockTwits, and Reddit.
-- **Cloud Infrastructure (Vision)**: AWS Lambda for scraping, S3 for storage, Glue for ETL, and Redshift for historical data warehousing.
+- **Cloud Infrastructure (Vision)**:
+    *   **AWS Lambda**: Serverless microservices to execute periodic scrapers for Reddit and StockTwits feeds.
+    *   **Amazon S3**: High-durability data lake hosting raw scraped JSON sentiment payloads.
+    *   **AWS Glue**: ETL pipeline that catalogs schemas and aggregates data into partitioned Parquet stores.
+    *   **Amazon Redshift**: Columnar data warehouse enabling performant historical query analytics on long-term market trends.
 
 ---
 
@@ -54,11 +58,11 @@ The platform leverages a hybrid cloud architecture designed for scalability and 
 
 ### Prerequisites
 
-- **Python 3.9+** (Recommended)
+- **Python 3.9+** (Tested on Python 3.10 and 3.12)
 - **Git**
-- **API Keys** (Optional, for Research Bot): Gemini API Key or Perplexity API Key.
+- **LLM API Credentials** (Optional): A Google Gemini API Key or a Perplexity Sonar API Key.
 
-### Installation
+### Installation & Environment Setup
 
 1.  **Clone the Repository**:
     ```bash
@@ -66,12 +70,33 @@ The platform leverages a hybrid cloud architecture designed for scalability and 
     cd FAST-Stock-Analysis-WebApp
     ```
 
-2.  **Install Dependencies**:
+2.  **Establish Environment Variables** (Optional, to bypass sidebar manual entry):
+    Create a `.env` file or export variables in your shell:
+    ```bash
+    # On Windows (PowerShell)
+    $env:GEMINI_API_KEY="your-gemini-key"
+    $env:PERPLEXITY_API_KEY="your-perplexity-key"
+    
+    # On Linux/macOS
+    export GEMINI_API_KEY="your-gemini-key"
+    export PERPLEXITY_API_KEY="your-perplexity-key"
+    ```
+
+3.  **Create a Virtual Environment**:
+    ```bash
+    python -m venv venv
+    # Activate on Windows:
+    .\venv\Scripts\activate
+    # Activate on Linux/macOS:
+    source venv/bin/activate
+    ```
+
+4.  **Install Dependencies**:
     ```bash
     pip install -r requirements.txt
     ```
 
-3.  **Run the Application**:
+5.  **Run the Application**:
     ```bash
     streamlit run app.py
     ```
