@@ -9,6 +9,8 @@
 FAST has evolved into a comprehensive **Agentic Financial Intelligence Platform**. Recent updates have integrated state-of-the-art AI and robust data pipelines:
 
 *   **🤖 Agentic Research Bot**: A multi-model conversational AI module natively integrated into the dashboard. Features a dynamic setup allowing seamless toggling between **Google Gemini (2.5 Flash)** and **Perplexity (Sonar)**. It injects real-time market context (price, metrics, news) to provide grounded, expert-level analysis.
+    *   **Dynamic API Key Input**: Input your API keys safely through the sidebar at runtime without exposing credentials in the codebase.
+    *   **Contextual Grounding**: Live scraping from Yahoo Finance and FinViz is dynamically formatted and injected as a system prompt, enabling the bot to converse with up-to-the-minute stock facts and figures.
 *   **📈 Advanced Forecasting**: Leveraging lightweight, high-accuracy statistical forecasting via `statsmodels` (Holt-Winters Exponential Smoothing). It captures complex trends and periodic seasonal spikes (e.g., holiday search trends) with interactive **Plotly** visualizations.
 *   **💬 Real-Time Social Sentiment**: A robust data pipeline for **StockTwits & Reddit**. Features real-time VADER NLP sentiment charting and aggressive algorithms for rendering clean, dense financial WordClouds.
 *   **💎 Premium UI/UX**: A modernized, glassmorphic Streamlit interface with custom Inter-based typography, interactive metric strips, and institutional-grade charting.
