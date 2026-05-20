@@ -25,7 +25,11 @@ FAST has evolved into a comprehensive **Agentic Financial Intelligence Platform*
     *   **SARIMA (Seasonal Autoregressive Integrated Moving Average)**: Employs statistical lag correlation and seasonal integration for structured, mathematically rigorous prediction.
     *   **Monte Carlo (Geometric Brownian Motion)**: Projects organic, stochastic price patterns by running multi-path simulations based on historical drift and asset volatility, yielding dynamic confidence intervals.
 - **Google Trends Integration**: Analyze and forecast search interest for any keyword with seasonal awareness.
-- **Sentiment Analysis**: Live news sentiment tracking from FinViz, visualized with interactive pie charts and sentiment badges.
+- **Multi-Source Sentiment Engine & NLP Pipeline**: Live sentiment intelligence aggregated from major social channels and news feeds:
+    *   **Financial News (FinViz)**: Real-time scraping of financial news headlines mapped directly to the active stock ticker, complete with interactive distribution pie charts and color-coded sentiment indicators.
+    *   **Social Channels (Reddit & StockTwits)**: High-throughput, rate-limit aware scrapers querying the latest discussion threads and investor posts.
+    *   **VADER NLP Processor**: Classifies social commentary via the Valence Aware Dictionary and sEntiment Reasoner, yielding precise positivity, negativity, and compound sentiment scores.
+    *   **High-Density WordClouds**: Dynamic text processing that filters out stopwords, noise, and generic symbols to generate clean visual representation of hot keywords and investor buzz.
 - **Financial Audio Transcription**: (Legacy Support) Infrastructure for transcribing and summarizing financial meeting audio via Amazon Transcribe.
 - **Model-Agnostic LLM Interface**: Securely use Gemini or Perplexity for deep-dive research without hardcoded API keys.
 
