@@ -1513,8 +1513,63 @@ def main():
             else:
                 st.warning('Price column missing — cannot compute RSI.')
 
+        # ── Bollinger Bands ───────────────────────────────────────────────────
+        st.subheader('Bollinger Bands')
+        numYearBB = st.number_input('Insert period (Year): ', min_value=1, max_value=10, value=1, key=4)
+        bb_window = st.slider('Bollinger Window (Days):', min_value=5, max_value=50, value=20, key='bb_window')
+        bb_std = st.slider('Standard Deviation Multiplier:', min_value=1, max_value=4, value=2, key='bb_std')
 
-        
+        startBB = dt.datetime.today() - dt.timedelta(numYearBB * 365)
+        endBB = dt.datetime.today()
+        dataBB = safe_yf_download(ticker, startBB, endBB)
+        if not dataBB.empty:
+            price_col_bb = get_price_column(dataBB)
+            if price_col_bb:
+                dataBB = dataBB.reset_index()
+                dataBB['SMA'] = dataBB[price_col_bb].rolling(bb_window).mean()
+                dataBB['STD'] = dataBB[price_col_bb].rolling(bb_window).std()
+                dataBB['Upper'] = dataBB['SMA'] + bb_std * dataBB['STD']
+                dataBB['Lower'] = dataBB['SMA'] - bb_std * dataBB['STD']
+                dataBB = dataBB.dropna(subset=['SMA'])
+
+                figBB = go.Figure()
+                figBB.add_trace(go.Scatter(
+                    x=dataBB['Date'], y=dataBB['Upper'],
+                    name=f'Upper Band (+{bb_std}σ)',
+                    line=dict(color='rgba(239,68,68,0.6)', width=1, dash='dot')
+                ))
+                figBB.add_trace(go.Scatter(
+                    x=dataBB['Date'], y=dataBB['Lower'],
+                    name=f'Lower Band (-{bb_std}σ)',
+                    line=dict(color='rgba(34,197,94,0.6)', width=1, dash='dot'),
+                    fill='tonexty',
+                    fillcolor='rgba(99,102,241,0.07)'
+                ))
+                figBB.add_trace(go.Scatter(
+                    x=dataBB['Date'], y=dataBB['SMA'],
+                    name=f'SMA({bb_window})',
+                    line=dict(color='#F59E0B', width=1.5)
+                ))
+                figBB.add_trace(go.Scatter(
+                    x=dataBB['Date'], y=dataBB[price_col_bb],
+                    name='Price',
+                    line=dict(color='#6366F1', width=2)
+                ))
+                figBB.update_layout(
+                    xaxis_title='Date',
+                    yaxis_title='Price (USD)',
+                    yaxis=dict(tickprefix='$'),
+                    legend=dict(orientation='h', yanchor='bottom', y=1, xanchor='left', x=0)
+                )
+                st.plotly_chart(figBB, use_container_width=True, theme='streamlit')
+                st.caption(
+                    f'Bollinger Bands ({bb_window}-day SMA ± {bb_std}σ): '
+                    'Price touching the upper band may signal overbought; lower band may signal oversold.'
+                )
+            else:
+                st.warning('Price column missing — cannot compute Bollinger Bands.')
+
+
 
 
 
