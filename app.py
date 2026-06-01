@@ -957,10 +957,10 @@ def main():
         with col_main:
             st.title('Data Sources')
             st.write("""
-            ### Our F.A.S.T application have 3 data sources for two different use cases:
-            #### 1. Web Scrapping to get Live News Data
-            #### 2. Twitter API to get Real time Tweets
-            #### 3. Google Trends API to get Real time Trends
+            ### Our F.A.S.T application uses 3 data sources for two different use cases:
+            #### 1. Web Scraping (FinViz) to get Live News & Sentiment Data
+            #### 2. StockTwits & Reddit API to get Real-time Social Media Chatter
+            #### 3. Google Trends API to get Real-time Search Trend Data
             """)
             st.text('')
 
@@ -1039,7 +1039,7 @@ def main():
                         time.sleep(1)
                     else:
                         break
-                except:
+                except (ValueError, KeyError, Exception):
                     break
             
             # Failover if Cloudflare blocks the request
@@ -1051,7 +1051,7 @@ def main():
                             text = str(row.get('headline', ''))
                             if text:
                                 messages.append({'body': text})
-                except:
+                except Exception:
                     pass
             return messages
 
@@ -1105,7 +1105,7 @@ def main():
                         time.sleep(1)
                     else:
                         break
-                except:
+                except Exception:
                     break
             return children
 
@@ -1201,7 +1201,7 @@ def main():
                     cname = snp500[snp500['Symbol'] == ticker]['Security'].values[0]
                     cname_clean = re.sub(r'[^\w\s]', '', cname)
                     company_name_parts = [p.lower() for p in cname_clean.split()]
-                except:
+                except (IndexError, KeyError, Exception):
                     pass
                     
                 generic_finance_and_platform = [
@@ -1478,6 +1478,41 @@ def main():
         figMACD.update_yaxes(tickprefix="$")
         st.plotly_chart(figMACD, use_container_width=True, theme="streamlit")
 
+        # ── Relative Strength Index (RSI) ─────────────────────────────────────
+        st.subheader('Relative Strength Index (RSI)')
+        numYearRSI = st.number_input('Insert period (Year): ', min_value=1, max_value=10, value=1, key=3)
+        rsi_window = st.slider('RSI Window (Days):', min_value=7, max_value=30, value=14, key='rsi_window')
+
+        startRSI = dt.datetime.today() - dt.timedelta(numYearRSI * 365)
+        endRSI = dt.datetime.today()
+        dataRSI = safe_yf_download(ticker, startRSI, endRSI)
+        if not dataRSI.empty:
+            price_col_rsi = get_price_column(dataRSI)
+            if price_col_rsi:
+                dataRSI = dataRSI.reset_index()
+                delta = dataRSI[price_col_rsi].diff()
+                gain = delta.clip(lower=0)
+                loss = (-delta).clip(lower=0)
+                avg_gain = gain.ewm(com=rsi_window - 1, min_periods=rsi_window).mean()
+                avg_loss = loss.ewm(com=rsi_window - 1, min_periods=rsi_window).mean()
+                rs = avg_gain / avg_loss.replace(0, float('nan'))
+                dataRSI['RSI'] = 100 - (100 / (1 + rs))
+                dataRSI = dataRSI.dropna(subset=['RSI'])
+
+                figRSI = go.Figure()
+                figRSI.add_trace(go.Scatter(x=dataRSI['Date'], y=dataRSI['RSI'], name='RSI', line=dict(color='#6366F1', width=2)))
+                figRSI.add_hline(y=70, line_dash='dash', line_color='#EF4444', annotation_text='Overbought (70)', annotation_position='bottom right')
+                figRSI.add_hline(y=30, line_dash='dash', line_color='#22C55E', annotation_text='Oversold (30)', annotation_position='top right')
+                figRSI.update_layout(
+                    yaxis=dict(title='RSI', range=[0, 100]),
+                    xaxis_title='Date',
+                    legend=dict(orientation='h', yanchor='bottom', y=1, xanchor='left', x=0)
+                )
+                st.plotly_chart(figRSI, use_container_width=True, theme='streamlit')
+                st.caption(f'RSI({rsi_window}): Values above 70 suggest overbought conditions; below 30 suggest oversold conditions.')
+            else:
+                st.warning('Price column missing — cannot compute RSI.')
+
 
         
 
@@ -1492,65 +1527,34 @@ def main():
 
 
         if st.button("Click here to See Latest News about " + ticker):
-            st.header('Latest News') 
+            st.header('Latest News')
+            # Reuse the shared get_news_sentiment_df function to avoid code duplication
+            try:
+                df = get_news_sentiment_df(ticker)
+            except Exception as exc:
+                st.error(f"Unable to fetch news right now: {exc}")
+                df = pd.DataFrame()
 
-            def newsfromfizviz(temp):
-                finwiz_url = 'https://finviz.com/quote.ashx?t='
-                news_tables = {}
-                tickers = [temp]
+            if df is not None and not df.empty:
+                df_pie = df[['Sentiment', 'headline']].groupby('Sentiment').count()
+                fig = px.pie(df_pie, values=df_pie['headline'], names=df_pie.index, color=df_pie.index, color_discrete_map={'Positive': 'green', 'Neutral': 'darkblue', 'Negative': 'red'})
 
-                for ticker in tickers:
-                    url = finwiz_url + ticker
-                    req = Request(url=url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'})
-                    response = urlopen(req)
-                    html = BeautifulSoup(response, 'html.parser')
-                    news_table = html.find(id='news-table')
-                    news_tables[ticker] = news_table
+                st.subheader('Dataframe with Latest News')
+                st.dataframe(df)
 
-                parsed_news = []
-                for file_name, news_table in news_tables.items():
-                    for x in news_table.findAll('tr'):
-                        if x.a:
-                            text = x.a.get_text()
-                        else:
-                            text = "No headline available"
-                        date_scrape = x.td.text.split()
-                        if len(date_scrape) == 1:
-                            time = date_scrape[0]
-                        else:
-                            date = date_scrape[0]
-                            time = date_scrape[1]
-                        ticker = file_name.split('_')[0]
-                        parsed_news.append([ticker, date, time, text])
+                st.subheader('Latest News Sentiment Distribution using Pie Chart')
+                st.plotly_chart(fig, theme="streamlit")
 
-                vader = SentimentIntensityAnalyzer()
-                columns = ['ticker', 'date', 'time', 'headline']
-                parsed_and_scored_news = pd.DataFrame(parsed_news, columns=columns)
-                scores = parsed_and_scored_news['headline'].apply(vader.polarity_scores).tolist()
-                scores_df = pd.DataFrame(scores)
-                parsed_and_scored_news = parsed_and_scored_news.join(scores_df, rsuffix='_right')
-                parsed_and_scored_news['date'] = pd.to_datetime(parsed_and_scored_news['date'], errors='coerce').dt.date
-                parsed_and_scored_news['Sentiment'] = np.where(parsed_and_scored_news['compound'] > 0, 'Positive', np.where(parsed_and_scored_news['compound'] == 0, 'Neutral', 'Negative'))
-                return parsed_and_scored_news
-
-            df = newsfromfizviz(ticker)
-            df_pie = df[['Sentiment', 'headline']].groupby('Sentiment').count()
-            fig = px.pie(df_pie, values=df_pie['headline'], names=df_pie.index, color=df_pie.index, color_discrete_map={'Positive': 'green', 'Neutral': 'darkblue', 'Negative': 'red'})
-
-            st.subheader('Dataframe with Latest News')
-            st.dataframe(df)
-
-            st.subheader('Latest News Sentiment Distribution using Pie Chart')
-            st.plotly_chart(fig, theme="streamlit")
-
-            plt.rcParams['figure.figsize'] = [11, 5]
-            mean_scores = df.groupby(['ticker', 'date']).mean(numeric_only=True)
-            mean_scores = mean_scores.unstack()
-            mean_scores = mean_scores.xs('compound', axis="columns").transpose()
-            mean_scores.plot(kind='bar')
-            plt.grid()
-            st.subheader('Sentiments over Time')
-            st.pyplot(plt)
+                plt.rcParams['figure.figsize'] = [11, 5]
+                mean_scores = df.groupby(['ticker', 'date']).mean(numeric_only=True)
+                mean_scores = mean_scores.unstack()
+                mean_scores = mean_scores.xs('compound', axis="columns").transpose()
+                mean_scores.plot(kind='bar')
+                plt.grid()
+                st.subheader('Sentiments over Time')
+                st.pyplot(plt)
+            else:
+                st.info("No news found for this ticker. Please try again later.")
 
 
 
