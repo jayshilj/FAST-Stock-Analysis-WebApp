@@ -1,3 +1,28 @@
+"""ui_theme.py – FAST Financial Dashboard Design System.
+
+This module provides the centralised CSS injection, navigation layout, and
+HTML component renderers for the FAST Stock Analysis WebApp.
+
+Usage::
+
+    from ui_theme import (
+        init_theme_state, inject_global_css, render_top_bar,
+        render_sidebar_navigation, render_company_hero, render_metric_strip,
+        render_section_card_start, render_section_card_end,
+        render_insight_card, render_sentiment_badge, page_title,
+    )
+
+Design tokens:
+    - Primary colour: #6366F1 (indigo)
+    - Positive sentiment: #22C55E (green)
+    - Negative sentiment: #EF4444 (red)
+    - Neutral sentiment: #F59E0B (amber)
+    - Typography: Google Fonts – Inter (400/500/600/700/800)
+
+All render_* functions accept a ``st`` parameter (the ``streamlit`` module
+reference) to avoid a top-level import of Streamlit, which keeps this
+module importable in testing environments without a running Streamlit server.
+"""
 from __future__ import annotations
 
 from datetime import datetime
@@ -26,11 +51,24 @@ def _nav_display(internal, icon, short):
 
 
 def init_theme_state(st):
+    """Initialise Streamlit session-state keys required by the theme.
+
+    Must be called once before any other render function. Currently seeds
+    the global ticker search session key used to persist state across page
+    navigations.
+    """
     if "global_ticker_search" not in st.session_state:
         st.session_state["global_ticker_search"] = "AAPL"
 
 
 def inject_global_css(st):
+    """Inject the global glassmorphic CSS design system into the Streamlit page.
+
+    Imports the Inter typeface from Google Fonts and applies CSS custom
+    properties for layout tokens, glassmorphic section cards, metric strips,
+    badge styles, top-bar, hero headers, news items, and the developer card.
+    Should be called once, immediately after ``st.set_page_config()``.
+    """
     st.markdown(
         """
         <style>
@@ -466,6 +504,11 @@ def inject_global_css(st):
 
 
 def render_top_bar(st):
+    """Render the branded top navigation bar with live timestamp.
+
+    Displays the APP_BRAND_FULL name (with the first word highlighted in the
+    primary colour) and the current date/time in ``YYYY-MM-DD · HH:MM`` format.
+    """
     now = datetime.now().strftime("%Y-%m-%d · %H:%M")
     first, _, rest = APP_BRAND_FULL.partition(" ")
     brand_html = '<p class="topbar-brand"><span>{}</span> {}</p>'.format(
@@ -486,6 +529,12 @@ def render_top_bar(st):
 
 
 def render_sidebar_navigation(st):
+    """Render the branded sidebar including logo, nav radio buttons, and dev card.
+
+    Returns:
+        str: The internal page name selected by the user (e.g. ``'Dashboard'``,
+             ``'Agentic Research Bot'``, etc.) as defined in NAV_DEFINITION.
+    """
     logo_letter = escape(APP_BRAND_FULL.strip()[0].upper())
     st.sidebar.markdown(
         """
@@ -537,6 +586,7 @@ def render_sidebar_navigation(st):
 
 
 def render_dashboard_hero(st):
+    """Render the hero banner displayed at the top of the Dashboard page."""
     st.markdown(
         """
         <div class="hero-card">
@@ -553,6 +603,11 @@ def render_dashboard_hero(st):
 
 
 def render_section_card_start(st, title, subtitle=""):
+    """Open a glassmorphic section card with a title and optional subtitle.
+
+    Must always be paired with a call to :func:`render_section_card_end` to
+    close the ``<div>`` element.
+    """
     st.markdown(
         """
         <div class="section-card">
@@ -567,10 +622,19 @@ def render_section_card_start(st, title, subtitle=""):
 
 
 def render_section_card_end(st):
+    """Close a section card opened by :func:`render_section_card_start`."""
     st.markdown("</div>", unsafe_allow_html=True)
 
 
 def render_insight_card(st, label, value, help_text):
+    """Render a compact KPI card with a label, prominent value, and help text.
+
+    Args:
+        st: The ``streamlit`` module reference.
+        label (str): Short uppercase label (e.g. ``'Live price'``).
+        value (str): Formatted metric value (e.g. ``'$182.63'``).
+        help_text (str): One-line explanatory text shown below the value.
+    """
     st.markdown(
         """
         <div class="insight-card">
