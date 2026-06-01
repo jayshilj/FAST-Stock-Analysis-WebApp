@@ -1,0 +1,29 @@
+[server]
+# Increase the upload file size limit (default 200 MB → 500 MB)
+maxUploadSize = 500
+
+# Prevent Streamlit from opening a browser tab automatically on run
+# (useful in server/container environments)
+headless = false
+
+# Enable CORS for local development
+enableCORS = false
+
+[browser]
+# Suppress "How do you want to collect usage statistics?" popup
+gatherUsageStats = false
+
+[theme]
+# Primary accent colour – matches the indigo used in ui_theme.py
+primaryColor = "#6366F1"
+
+# Use a dark-neutral background (glassmorphic cards render best on dark surfaces)
+backgroundColor = "#0F1117"
+secondaryBackgroundColor = "#1A1D2E"
+textColor = "#E2E8F0"
+
+font = "sans serif"
+
+[runner]
+# Allow Streamlit to import modules from the project root without a package install
+fastReruns = true
