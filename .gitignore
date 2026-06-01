@@ -1,3 +1,31 @@
 .venv/
 venv/
 .streamlit/secrets.toml
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# Scratch / temporary files
+scratch/
+
+# Byte-compiled
+*.pyc
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# Environment
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
