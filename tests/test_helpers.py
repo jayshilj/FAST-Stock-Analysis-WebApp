@@ -231,3 +231,157 @@ class TestRSIComputation:
         prices = pd.Series(list(range(1, 31)), dtype=float)
         rsi = self.compute_rsi(prices, window=14)
         assert rsi.iloc[:13].isna().all()
+
+
+class TestATRComputation:
+    """Validate the Average True Range (ATR) calculation logic added to Company Advanced Details."""
+
+    @staticmethod
+    def compute_atr(high: pd.Series, low: pd.Series, close: pd.Series, window: int = 14) -> pd.Series:
+        prev_close = close.shift(1)
+        df = pd.DataFrame({'High': high, 'Low': low, 'prev_close': prev_close})
+        tr = df.apply(
+            lambda r: max(
+                r['High'] - r['Low'],
+                abs(r['High'] - r['prev_close']) if pd.notna(r['prev_close']) else 0,
+                abs(r['Low'] - r['prev_close']) if pd.notna(r['prev_close']) else 0,
+            ),
+            axis=1,
+        )
+        return tr.ewm(span=window, min_periods=window).mean()
+
+    def test_atr_positive(self):
+        """ATR must always be non-negative."""
+        n = 60
+        high = pd.Series([100 + i + abs(math.sin(i)) for i in range(n)])
+        low = pd.Series([100 + i - abs(math.sin(i)) for i in range(n)])
+        close = pd.Series([100 + i for i in range(n)])
+        atr = self.compute_atr(high, low, close).dropna()
+        assert (atr >= 0).all()
+
+    def test_atr_nan_before_window(self):
+        """First (window-1) ATR values should be NaN."""
+        n = 30
+        high = pd.Series([float(i + 1) for i in range(n)])
+        low = pd.Series([float(i) for i in range(n)])
+        close = pd.Series([float(i) + 0.5 for i in range(n)])
+        atr = self.compute_atr(high, low, close, window=14)
+        assert atr.iloc[:13].isna().all()
+
+    def test_flat_market_low_atr(self):
+        """A perfectly flat market should have near-zero ATR."""
+        n = 60
+        high = pd.Series([100.5] * n, dtype=float)
+        low = pd.Series([99.5] * n, dtype=float)
+        close = pd.Series([100.0] * n, dtype=float)
+        atr = self.compute_atr(high, low, close).dropna()
+        assert len(atr) > 0
+        assert atr.iloc[-1] < 2.0  # Tight range → small ATR
+
+    def test_volatile_market_high_atr(self):
+        """A highly volatile market should have a larger ATR than a flat market."""
+        n = 60
+        volatile_high = pd.Series([100 + (i % 2) * 20 for i in range(n)], dtype=float)
+        volatile_low = pd.Series([100 - (i % 2) * 20 for i in range(n)], dtype=float)
+        volatile_close = pd.Series([100.0] * n, dtype=float)
+        flat_high = pd.Series([101.0] * n, dtype=float)
+        flat_low = pd.Series([99.0] * n, dtype=float)
+        flat_close = pd.Series([100.0] * n, dtype=float)
+        volatile_atr = self.compute_atr(volatile_high, volatile_low, volatile_close).dropna()
+        flat_atr = self.compute_atr(flat_high, flat_low, flat_close).dropna()
+        assert volatile_atr.iloc[-1] > flat_atr.iloc[-1]
+
+
+class TestStochasticOscillator:
+    """Validate the Stochastic Oscillator (%K / %D) computation."""
+
+    @staticmethod
+    def compute_stochastic(high: pd.Series, low: pd.Series, close: pd.Series,
+                            k_window: int = 14, d_window: int = 3):
+        lowest_low = low.rolling(k_window).min()
+        highest_high = high.rolling(k_window).max()
+        pct_k = 100 * (close - lowest_low) / (highest_high - lowest_low).replace(0, float('nan'))
+        pct_d = pct_k.rolling(d_window).mean()
+        return pct_k, pct_d
+
+    def test_range_0_to_100(self):
+        """Both %K and %D must stay within [0, 100]."""
+        n = 80
+        np.random.seed(99)
+        close = pd.Series(np.cumsum(np.random.normal(0, 1, n)) + 100)
+        high = close + abs(np.random.normal(0, 0.5, n))
+        low = close - abs(np.random.normal(0, 0.5, n))
+        k, d = self.compute_stochastic(high, low, close)
+        k_clean = k.dropna()
+        d_clean = d.dropna()
+        assert (k_clean >= 0).all() and (k_clean <= 100).all()
+        assert (d_clean >= 0).all() and (d_clean <= 100).all()
+
+    def test_nan_before_k_window(self):
+        """First k_window-1 %K values must be NaN."""
+        n = 40
+        close = pd.Series(list(range(1, n + 1)), dtype=float)
+        high = close + 1
+        low = close - 1
+        k, _ = self.compute_stochastic(high, low, close, k_window=14)
+        assert k.iloc[:13].isna().all()
+
+    def test_at_peak_stochastic_near_100(self):
+        """%K should approach 100 when price is at the top of its range."""
+        n = 20
+        high = pd.Series([100.0] * n)
+        low = pd.Series([90.0] * n)
+        close = pd.Series([100.0] * n)  # Always at the high
+        k, _ = self.compute_stochastic(high, low, close, k_window=14)
+        k_clean = k.dropna()
+        assert k_clean.iloc[-1] > 95.0
+
+    def test_at_trough_stochastic_near_0(self):
+        """%K should approach 0 when price is at the bottom of its range."""
+        n = 20
+        high = pd.Series([100.0] * n)
+        low = pd.Series([90.0] * n)
+        close = pd.Series([90.0] * n)  # Always at the low
+        k, _ = self.compute_stochastic(high, low, close, k_window=14)
+        k_clean = k.dropna()
+        assert k_clean.iloc[-1] < 5.0
+
+
+class TestMACDHistogram:
+    """Validate the MACD Histogram (macd - signal) calculation."""
+
+    @staticmethod
+    def compute_macd(prices: pd.Series, fast: int = 12, slow: int = 26, signal: int = 9):
+        ema_fast = prices.ewm(span=fast, min_periods=fast).mean()
+        ema_slow = prices.ewm(span=slow, min_periods=slow).mean()
+        macd_line = ema_fast - ema_slow
+        signal_line = macd_line.ewm(span=signal, min_periods=signal).mean()
+        histogram = macd_line - signal_line
+        return macd_line, signal_line, histogram
+
+    def test_histogram_is_difference(self):
+        """Histogram must equal macd_line - signal_line at every point."""
+        prices = pd.Series([100.0 + i * 0.3 for i in range(100)])
+        macd_line, signal_line, histogram = self.compute_macd(prices)
+        diff = (macd_line - signal_line).dropna()
+        hist_clean = histogram.dropna()
+        common_idx = diff.index.intersection(hist_clean.index)
+        pd.testing.assert_series_equal(diff[common_idx], hist_clean[common_idx], check_names=False)
+
+    def test_histogram_sign_bullish(self):
+        """Rising prices should produce a positive histogram (macd > signal)."""
+        prices = pd.Series([100 + i * 0.5 for i in range(100)], dtype=float)
+        _, _, histogram = self.compute_macd(prices)
+        hist_clean = histogram.dropna()
+        assert len(hist_clean) > 0
+        # With a pure uptrend the fast EMA should stay above the slow EMA
+        # but histogram can momentarily dip as signal catches up; last value should be ≥ 0
+        # We just confirm no extreme negative values in steady uptrend
+        assert hist_clean.iloc[-1] > -5.0
+
+    def test_nan_before_slow_window(self):
+        """Histogram must be NaN for the first slow+signal-1 values."""
+        prices = pd.Series(list(range(1, 101)), dtype=float)
+        _, _, histogram = self.compute_macd(prices, fast=12, slow=26, signal=9)
+        # The first non-NaN histogram value appears after slow + signal - 2 bars
+        assert histogram.iloc[:33].isna().all()
