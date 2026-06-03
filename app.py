@@ -7,6 +7,11 @@ import sys
 #@st.cache
  
 def install_requirements():
+    """Install all Python package dependencies specified in requirements.txt.
+
+    This function executes 'pip install' in a subprocess. It is typically called
+    on startup to ensure the runtime environment matches the required versions.
+    """
     try:
         subprocess.check_call([sys.executable, '-m', 'pip', 'install', '-r', 'requirements.txt'])
         print("Dependencies installed successfully.")
@@ -17,6 +22,13 @@ def install_requirements():
 
 
 def main():
+    """Main entry point for the FAST Stock Analysis WebApp.
+
+    This function initializes the Streamlit application page configuration,
+    injects the global design system theme from ui_theme, imports necessary
+    analytical and plotting modules, manages user input states, and renders
+    the interactive stock visualization panels.
+    """
     # Dependencies should be installed once in the environment.
     # Re-installing on every Streamlit rerun is slow and fragile.
 
