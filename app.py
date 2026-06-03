@@ -1622,7 +1622,50 @@ def main():
         else:
             st.warning('High/Low/Close columns missing — cannot compute ATR.')
 
+        # ── Stochastic Oscillator (%K / %D) ──────────────────────────────────
+        st.subheader('Stochastic Oscillator (%K / %D)')
+        numYearStoch = st.number_input('Insert period (Year): ', min_value=1, max_value=10, value=1, key=6)
+        stoch_k_window = st.slider('%K Lookback Window (Days):', min_value=5, max_value=30, value=14, key='stoch_k')
+        stoch_d_window = st.slider('%D Smoothing Window (Days):', min_value=2, max_value=10, value=3, key='stoch_d')
 
+        startStoch = dt.datetime.today() - dt.timedelta(numYearStoch * 365)
+        endStoch = dt.datetime.today()
+        dataStoch = safe_yf_download(ticker, startStoch, endStoch)
+        if not dataStoch.empty and {'High', 'Low', 'Close'}.issubset(dataStoch.columns):
+            dataStoch = dataStoch.reset_index()
+            lowest_low = dataStoch['Low'].rolling(stoch_k_window).min()
+            highest_high = dataStoch['High'].rolling(stoch_k_window).max()
+            dataStoch['%K'] = 100 * (dataStoch['Close'] - lowest_low) / (highest_high - lowest_low).replace(0, float('nan'))
+            dataStoch['%D'] = dataStoch['%K'].rolling(stoch_d_window).mean()
+            dataStoch = dataStoch.dropna(subset=['%K', '%D'])
+
+            figStoch = go.Figure()
+            figStoch.add_trace(go.Scatter(
+                x=dataStoch['Date'], y=dataStoch['%K'],
+                name='%K (Fast)',
+                line=dict(color='#6366F1', width=2),
+            ))
+            figStoch.add_trace(go.Scatter(
+                x=dataStoch['Date'], y=dataStoch['%D'],
+                name=f'%D (SMA-{stoch_d_window})',
+                line=dict(color='#F59E0B', width=1.5, dash='dot'),
+            ))
+            figStoch.add_hline(y=80, line_dash='dash', line_color='#EF4444',
+                               annotation_text='Overbought (80)', annotation_position='bottom right')
+            figStoch.add_hline(y=20, line_dash='dash', line_color='#22C55E',
+                               annotation_text='Oversold (20)', annotation_position='top right')
+            figStoch.update_layout(
+                yaxis=dict(title='Stochastic', range=[0, 100]),
+                xaxis_title='Date',
+                legend=dict(orientation='h', yanchor='bottom', y=1, xanchor='left', x=0),
+            )
+            st.plotly_chart(figStoch, use_container_width=True, theme='streamlit')
+            st.caption(
+                f'Stochastic %K({stoch_k_window}) / %D({stoch_d_window}): '
+                'Values above 80 suggest overbought conditions; below 20 suggest oversold.'
+            )
+        else:
+            st.warning('High/Low/Close columns missing — cannot compute Stochastic Oscillator.')
 
 
 
