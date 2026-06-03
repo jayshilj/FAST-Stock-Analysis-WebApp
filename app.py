@@ -1579,7 +1579,48 @@ def main():
             else:
                 st.warning('Price column missing — cannot compute Bollinger Bands.')
 
+        # ── Average True Range (ATR) ──────────────────────────────────────────
+        st.subheader('Average True Range (ATR) – Volatility Meter')
+        numYearATR = st.number_input('Insert period (Year): ', min_value=1, max_value=10, value=1, key=5)
+        atr_window = st.slider('ATR Window (Days):', min_value=5, max_value=50, value=14, key='atr_window')
 
+        startATR = dt.datetime.today() - dt.timedelta(numYearATR * 365)
+        endATR = dt.datetime.today()
+        dataATR = safe_yf_download(ticker, startATR, endATR)
+        if not dataATR.empty and {'High', 'Low', 'Close'}.issubset(dataATR.columns):
+            dataATR = dataATR.reset_index()
+            dataATR['prev_close'] = dataATR['Close'].shift(1)
+            dataATR['tr'] = dataATR[['High', 'Low', 'prev_close']].apply(
+                lambda r: max(
+                    r['High'] - r['Low'],
+                    abs(r['High'] - r['prev_close']) if pd.notna(r['prev_close']) else 0,
+                    abs(r['Low'] - r['prev_close']) if pd.notna(r['prev_close']) else 0,
+                ),
+                axis=1,
+            )
+            dataATR['ATR'] = dataATR['tr'].ewm(span=atr_window, min_periods=atr_window).mean()
+            dataATR = dataATR.dropna(subset=['ATR'])
+
+            figATR = go.Figure()
+            figATR.add_trace(go.Scatter(
+                x=dataATR['Date'], y=dataATR['ATR'],
+                name=f'ATR({atr_window})',
+                fill='tozeroy',
+                fillcolor='rgba(99,102,241,0.10)',
+                line=dict(color='#6366F1', width=2),
+            ))
+            figATR.update_layout(
+                xaxis_title='Date',
+                yaxis=dict(title='ATR (USD)', tickprefix='$'),
+                legend=dict(orientation='h', yanchor='bottom', y=1, xanchor='left', x=0),
+            )
+            st.plotly_chart(figATR, use_container_width=True, theme='streamlit')
+            st.caption(
+                f'ATR({atr_window}): A rising ATR indicates expanding volatility; '
+                'a falling ATR suggests the market is consolidating.'
+            )
+        else:
+            st.warning('High/Low/Close columns missing — cannot compute ATR.')
 
 
 
