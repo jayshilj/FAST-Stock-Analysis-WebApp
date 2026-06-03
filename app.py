@@ -1340,6 +1340,7 @@ def main():
             df['ema26'] = df[price_column].ewm(span=26, min_periods=26).mean()
             df['macd'] = df['ema12'] - df['ema26']
             df['signal'] = df['macd'].ewm(span=9, min_periods=9).mean()
+            df['histogram'] = df['macd'] - df['signal']
             df.dropna(inplace=True)
             return df
 
@@ -1461,6 +1462,17 @@ def main():
                 x = df_macd['Date'],
                 y = df_macd['signal'],
                 name = "Signal Line"
+            ),
+            row=2, col=1
+        )
+
+        figMACD.add_trace(
+            go.Bar(
+                x=df_macd['Date'],
+                y=df_macd['histogram'],
+                name='MACD Histogram',
+                marker_color=np.where(df_macd['histogram'] >= 0, '#22C55E', '#EF4444'),
+                opacity=0.7,
             ),
             row=2, col=1
         )
