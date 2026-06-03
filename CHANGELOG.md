@@ -9,19 +9,19 @@ This file follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) conve
 ## [Unreleased]
 
 ### Added
-- **RSI Indicator** – Relative Strength Index (RSI) chart with configurable window and overbought/oversold thresholds added to the *Company Advanced Details* page.
-- **Unit Test Suite** – `tests/test_helpers.py` and `pytest.ini` providing 20+ tests covering `_fmt_metric`, `render_sentiment_badge`, NAV integrity, `normalize_market_df`, `safe_summarize`, and RSI computation logic.
-- **`conftest.py`** – Shared pytest fixtures and marker registration.
-- **`requests`** – Explicit dependency declaration for the Perplexity API and social-media scrapers.
+- **Stochastic Oscillator (%K / %D)** – Configurable fast/slow stochastic chart with overbought (80) and oversold (20) thresholds added to *Company Advanced Details*.
+- **Average True Range (ATR)** – Wilder EWM-smoothed volatility meter with area fill chart added to *Company Advanced Details*.
+- **Bollinger Band Width** – Band-squeeze subplot showing (Upper − Lower) / SMA × 100 displayed below the main Bollinger Bands chart, helping identify consolidation phases before breakouts.
+- **MACD Histogram** – Color-coded (green/red) bar trace layered onto the MACD panel showing the divergence between the MACD line and its signal line.
+- **`indicators.py`** – Standalone indicator library (`compute_rsi`, `compute_atr`, `compute_macd`, `compute_stochastic`, `compute_bollinger`) fully decoupled from Streamlit, enabling reuse in notebooks or API endpoints.
+- **Unit test expansion** – `TestATRComputation`, `TestStochasticOscillator`, and `TestMACDHistogram` classes added to `tests/test_helpers.py`, growing the suite to 36+ assertions.
 
 ### Changed
-- **`requirements.txt`** – All dependencies now carry explicit compatible-release version ranges (`>=MIN,<MAJOR+1`) to prevent silent breaking changes.
-- **Live News Sentiment page** – Removed 40+ lines of duplicated scraping code. Now reuses the top-level `get_news_sentiment_df()` helper with proper error handling for fetch failures.
-- **Bare `except` clauses** – All `except:` blocks in `Social Media Trends` replaced with typed exceptions (`ValueError`, `KeyError`, `IndexError`, `Exception`) to prevent silently swallowing `KeyboardInterrupt` / `SystemExit`.
-- **About the Project page** – Corrected data-source description: removed reference to deprecated Twitter API; now accurately lists FinViz web scraping, StockTwits, and Reddit as the active data sources.
+- **`compute_rsi()` helper** – Extracted as a named function near other shared helpers in `app.py`; the inline RSI block in *Company Advanced Details* now calls this helper, eliminating duplication.
+- **`calc_macd()` function** – Now computes and returns the `histogram` column (`macd − signal`) alongside the MACD and signal lines.
 
 ### Fixed
-- `.gitignore` – Now properly excludes `__pycache__/`, `*.pyc`, `scratch/`, `.env`, `.vscode/`, and `.idea/`.
+- **Meeting Summarization page** – Replaced two bare `except:` clauses with typed `except (ValueError, TypeError, OSError, Exception):` to prevent `KeyboardInterrupt` / `SystemExit` from being silently swallowed.
 
 ---
 
