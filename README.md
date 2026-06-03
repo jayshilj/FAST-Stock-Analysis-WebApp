@@ -7,7 +7,8 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Python-3.10%2B-blue?logo=python&logoColor=white" alt="Python 3.10+" />
   <img src="https://img.shields.io/badge/Streamlit-1.35%2B-FF4B4B?logo=streamlit&logoColor=white" alt="Streamlit" />
-  <img src="https://img.shields.io/badge/Tests-28%20passed-22C55E?logo=pytest" alt="Tests 28 passed" />
+  <img src="https://img.shields.io/badge/Tests-36%20passed-22C55E?logo=pytest" alt="Tests 36 passed" />
+  <img src="https://img.shields.io/badge/Documentation-Reference-blueviolet?logo=read-the-docs&logoColor=white" alt="Documentation" />
   <img src="https://img.shields.io/badge/License-MIT-yellow" alt="MIT License" />
   <img src="https://img.shields.io/badge/LLM-Gemini%202.5%20Flash%20%7C%20Perplexity-6366F1" alt="LLM" />
 </p>
@@ -19,6 +20,22 @@
 **FAST** is a production-grade **Agentic Financial Intelligence Platform** built with Streamlit. It combines real-time market data, multi-model LLM research, technical analysis, and social sentiment into a single premium glassmorphic dashboard.
 
 > Originally developed as a CSYE 7245 Final Project (Spring 2021) at Northeastern University, FAST has since evolved substantially and now features state-of-the-art AI integrations, robust data pipelines, and a professional UI/UX layer.
+
+---
+
+## 📚 Documentation Reference
+
+For deeper insights into the project's internal mechanics, deployment procedures, and code standards, refer to the following resources:
+
+* **[System Architecture](docs/architecture.md)** – Software design, state management, and component architecture.
+* **[Technical Indicators Reference](docs/indicators_reference.md)** – Mathematical formulas, parameters, and default values for tech indicators.
+* **[API Keys & Secrets Setup](docs/api_keys_setup.md)** – Step-by-step instructions for obtaining and configuring Reddit/PRAW credentials.
+* **[Deployment & Operations Guide](docs/deployment.md)** – Guides for local run, Docker containerization, and Streamlit Community Cloud hosting.
+* **[Data Sources & Sentiment Engine](docs/data_sources.md)** – Descriptions of data providers (yfinance, FinViz, StockTwits) and the VADER sentiment classifier.
+* **[Testing Strategy](docs/testing.md)** – Unit test setup, command parameters, and testing guidelines.
+* **[Contributing Guidelines](CONTRIBUTING.md)** – Working with Git, styling conventions, and submitting PRs.
+* **[Code of Conduct](CODE_OF_CONDUCT.md)** – Committing to a welcoming, diverse, and respectful workspace.
+* **[Security Policy](SECURITY.md)** – Guidelines for reporting security issues and vulnerabilities.
 
 ---
 
