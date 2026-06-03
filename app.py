@@ -614,6 +614,28 @@ def main():
     def _stock_forecast_fallback():
         pass
 
+    def compute_rsi(prices: pd.Series, window: int = 14) -> pd.Series:
+        """Compute the Relative Strength Index (RSI) for a price series.
+
+        Uses exponential weighted moving averages (EWM) with ``com=window-1``
+        to match the industry-standard Wilder smoothing method.
+
+        Args:
+            prices: A pandas Series of closing prices.
+            window: Look-back period in days (default 14).
+
+        Returns:
+            pandas Series of RSI values in the range [0, 100].
+            The first ``window - 1`` values will be ``NaN``.
+        """
+        delta = prices.diff()
+        gain = delta.clip(lower=0)
+        loss = (-delta).clip(lower=0)
+        avg_gain = gain.ewm(com=window - 1, min_periods=window).mean()
+        avg_loss = loss.ewm(com=window - 1, min_periods=window).mean()
+        rs = avg_gain / avg_loss.replace(0, float("nan"))
+        return 100 - (100 / (1 + rs))
+
 
     verified = "True"
     result = APP_BRAND_FULL
@@ -1500,13 +1522,7 @@ def main():
             price_col_rsi = get_price_column(dataRSI)
             if price_col_rsi:
                 dataRSI = dataRSI.reset_index()
-                delta = dataRSI[price_col_rsi].diff()
-                gain = delta.clip(lower=0)
-                loss = (-delta).clip(lower=0)
-                avg_gain = gain.ewm(com=rsi_window - 1, min_periods=rsi_window).mean()
-                avg_loss = loss.ewm(com=rsi_window - 1, min_periods=rsi_window).mean()
-                rs = avg_gain / avg_loss.replace(0, float('nan'))
-                dataRSI['RSI'] = 100 - (100 / (1 + rs))
+                dataRSI['RSI'] = compute_rsi(dataRSI[price_col_rsi], window=rsi_window)
                 dataRSI = dataRSI.dropna(subset=['RSI'])
 
                 figRSI = go.Figure()
