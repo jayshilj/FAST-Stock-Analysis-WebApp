@@ -996,10 +996,9 @@ def main():
                 time.sleep(1.4)
                 try:
                     with open(data_dir + user_input) as f:
-                        st.success(safe_summarize(f.read(), ratio=float(ratiodata)))          
-                        #print()
+                        st.success(safe_summarize(f.read(), ratio=float(ratiodata)))
                         st.warning("Sentiment: Negative")
-                except:
+                except (ValueError, TypeError, OSError, Exception):
                     st.text("Please Enter a valid Decimal value like 0.01")
 
             else:
@@ -1007,10 +1006,9 @@ def main():
                 time.sleep(1.4)
                 try:
                     with open(data_dir + user_input) as f:
-                        st.success(safe_summarize(f.read(), ratio=float(ratiodata)))          
-                        #print()
+                        st.success(safe_summarize(f.read(), ratio=float(ratiodata)))
                         st.success("Sentiment: Positive")
-                except:
+                except (ValueError, TypeError, OSError, Exception):
                     st.text("Please Enter a valid Decimal value like 0.01")
 
     elif page == "Social Media Trends":                                            
