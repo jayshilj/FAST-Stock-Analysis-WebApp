@@ -9,6 +9,9 @@ This file follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) conve
 ## [Unreleased]
 
 ### Added
+- **Developer Documentation Directory** – Created a comprehensive `docs/` repository including guides for `architecture.md`, `indicators_reference.md`, `api_keys_setup.md`, `deployment.md`, `data_sources.md`, and `testing.md`.
+- **Community Standards** – Added root-level open-source guidelines: `CONTRIBUTING.md` for environment setup, `CODE_OF_CONDUCT.md` (Contributor Covenant 2.1), and `SECURITY.md` for coordinated vulnerability reporting.
+- **Enhanced Code Documentation** – Documented app initialization (`install_requirements()`) and main layout entry points (`main()`) in `app.py` with standard Python docstrings.
 - **Stochastic Oscillator (%K / %D)** – Configurable fast/slow stochastic chart with overbought (80) and oversold (20) thresholds added to *Company Advanced Details*.
 - **Average True Range (ATR)** – Wilder EWM-smoothed volatility meter with area fill chart added to *Company Advanced Details*.
 - **Bollinger Band Width** – Band-squeeze subplot showing (Upper − Lower) / SMA × 100 displayed below the main Bollinger Bands chart, helping identify consolidation phases before breakouts.
