@@ -1556,6 +1556,8 @@ def main():
                 dataBB['STD'] = dataBB[price_col_bb].rolling(bb_window).std()
                 dataBB['Upper'] = dataBB['SMA'] + bb_std * dataBB['STD']
                 dataBB['Lower'] = dataBB['SMA'] - bb_std * dataBB['STD']
+                dataBB['%B'] = (dataBB[price_col_bb] - dataBB['Lower']) / (dataBB['Upper'] - dataBB['Lower']).replace(0, float('nan'))
+                dataBB['BandWidth'] = (dataBB['Upper'] - dataBB['Lower']) / dataBB['SMA'] * 100
                 dataBB = dataBB.dropna(subset=['SMA'])
 
                 figBB = go.Figure()
@@ -1592,6 +1594,23 @@ def main():
                     f'Bollinger Bands ({bb_window}-day SMA ± {bb_std}σ): '
                     'Price touching the upper band may signal overbought; lower band may signal oversold.'
                 )
+
+                # Band Width subplot
+                figBW = go.Figure()
+                figBW.add_trace(go.Scatter(
+                    x=dataBB['Date'], y=dataBB['BandWidth'],
+                    name='Band Width (%)',
+                    fill='tozeroy',
+                    fillcolor='rgba(245,158,11,0.12)',
+                    line=dict(color='#F59E0B', width=1.5),
+                ))
+                figBW.update_layout(
+                    title=f'Bollinger Band Width ({bb_window}-day)',
+                    xaxis_title='Date',
+                    yaxis=dict(title='Width (%)'),
+                )
+                st.plotly_chart(figBW, use_container_width=True, theme='streamlit')
+                st.caption('Band Width: Low values indicate a squeeze (consolidation); spikes often precede breakout moves.')
             else:
                 st.warning('Price column missing — cannot compute Bollinger Bands.')
 
