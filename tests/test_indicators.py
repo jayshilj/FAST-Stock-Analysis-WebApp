@@ -249,3 +249,45 @@ class TestComputeBollinger:
         # Different windows → different row counts, both valid DataFrames
         assert isinstance(result10, pd.DataFrame)
         assert isinstance(result20, pd.DataFrame)
+
+
+class TestIndicatorsEdgeCases:
+    """Edge cases for all standalone technical indicator calculations."""
+
+    def test_empty_series(self):
+        empty = pd.Series([], dtype=float)
+        # Testing empty input behavior
+        assert compute_rsi(empty).empty
+        assert compute_atr(empty, empty, empty).empty
+        
+        m_line, s_line, hist = compute_macd(empty)
+        assert m_line.empty and s_line.empty and hist.empty
+
+        stoch_k, stoch_d = compute_stochastic(empty, empty, empty)
+        assert stoch_k.empty and stoch_d.empty
+
+        assert compute_bollinger(empty).empty
+
+    def test_all_nans(self):
+        nans = pd.Series([float("nan")] * 20, dtype=float)
+        assert compute_rsi(nans).isna().all()
+        assert compute_atr(nans, nans, nans).isna().all()
+
+        m_line, s_line, hist = compute_macd(nans)
+        assert m_line.isna().all() and s_line.isna().all() and hist.isna().all()
+
+        stoch_k, stoch_d = compute_stochastic(nans, nans, nans)
+        assert stoch_k.isna().all() and stoch_d.isna().all()
+
+        bb = compute_bollinger(nans)
+        assert bb.isna().all().all()
+
+    def test_zero_volatility_stochastic(self):
+        # High and low are equal, Close is flat. Max - Min = 0.
+        n = 15
+        high = pd.Series([10.0] * n)
+        low = pd.Series([10.0] * n)
+        close = pd.Series([10.0] * n)
+        stoch_k, stoch_d = compute_stochastic(high, low, close, k_window=5)
+        # Should not raise ZeroDivisionError and should return NaN or valid values
+        assert len(stoch_k) == n
