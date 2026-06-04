@@ -18,10 +18,13 @@ This file follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) conve
 - **MACD Histogram** – Color-coded (green/red) bar trace layered onto the MACD panel showing the divergence between the MACD line and its signal line.
 - **`indicators.py`** – Standalone indicator library (`compute_rsi`, `compute_atr`, `compute_macd`, `compute_stochastic`, `compute_bollinger`) fully decoupled from Streamlit, enabling reuse in notebooks or API endpoints.
 - **Unit test expansion** – `TestATRComputation`, `TestStochasticOscillator`, and `TestMACDHistogram` classes added to `tests/test_helpers.py`, growing the suite to 36+ assertions.
+- **Indicators Edge Cases Tests** – Wrote unit tests checking empty inputs, NaN series, and zero volatility conditions for the `indicators.py` library.
 
 ### Changed
 - **`compute_rsi()` helper** – Extracted as a named function near other shared helpers in `app.py`; the inline RSI block in *Company Advanced Details* now calls this helper, eliminating duplication.
 - **`calc_macd()` function** – Now computes and returns the `histogram` column (`macd − signal`) alongside the MACD and signal lines.
+- **Standardized Indicator Integration** – Refactored `app.py` to import and consume mathematical indicators (`compute_rsi`, `compute_bollinger`, `compute_stochastic`, `compute_macd`, `compute_atr`) directly from `indicators.py` instead of executing duplicate inline calculations.
+- **Architecture Documentation** – Updated `docs/architecture.md` system blueprint to clarify the data calculation flow between `app.py` and the core `indicators.py` mathematical module.
 
 ### Fixed
 - **Meeting Summarization page** – Replaced two bare `except:` clauses with typed `except (ValueError, TypeError, OSError, Exception):` to prevent `KeyboardInterrupt` / `SystemExit` from being silently swallowed.
