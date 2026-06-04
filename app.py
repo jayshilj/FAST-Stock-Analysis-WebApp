@@ -1350,11 +1350,10 @@ def main():
             price_column = get_price_column(df)
             if price_column is None:
                 return pd.DataFrame()
-            df['ema12'] = df[price_column].ewm(span=12, min_periods=12).mean()
+            # Retain ema26 for chart plotting compatibility
             df['ema26'] = df[price_column].ewm(span=26, min_periods=26).mean()
-            df['macd'] = df['ema12'] - df['ema26']
-            df['signal'] = df['macd'].ewm(span=9, min_periods=9).mean()
-            df['histogram'] = df['macd'] - df['signal']
+            from indicators import compute_macd
+            df['macd'], df['signal'], df['histogram'] = compute_macd(df[price_column])
             df.dropna(inplace=True)
             return df
 
@@ -1613,16 +1612,13 @@ def main():
         dataATR = safe_yf_download(ticker, startATR, endATR)
         if not dataATR.empty and {'High', 'Low', 'Close'}.issubset(dataATR.columns):
             dataATR = dataATR.reset_index()
-            dataATR['prev_close'] = dataATR['Close'].shift(1)
-            dataATR['tr'] = dataATR[['High', 'Low', 'prev_close']].apply(
-                lambda r: max(
-                    r['High'] - r['Low'],
-                    abs(r['High'] - r['prev_close']) if pd.notna(r['prev_close']) else 0,
-                    abs(r['Low'] - r['prev_close']) if pd.notna(r['prev_close']) else 0,
-                ),
-                axis=1,
+            from indicators import compute_atr
+            dataATR['ATR'] = compute_atr(
+                high=dataATR['High'],
+                low=dataATR['Low'],
+                close=dataATR['Close'],
+                window=atr_window
             )
-            dataATR['ATR'] = dataATR['tr'].ewm(span=atr_window, min_periods=atr_window).mean()
             dataATR = dataATR.dropna(subset=['ATR'])
 
             figATR = go.Figure()
