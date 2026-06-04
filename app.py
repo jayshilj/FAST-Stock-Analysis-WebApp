@@ -626,27 +626,7 @@ def main():
     def _stock_forecast_fallback():
         pass
 
-    def compute_rsi(prices: pd.Series, window: int = 14) -> pd.Series:
-        """Compute the Relative Strength Index (RSI) for a price series.
-
-        Uses exponential weighted moving averages (EWM) with ``com=window-1``
-        to match the industry-standard Wilder smoothing method.
-
-        Args:
-            prices: A pandas Series of closing prices.
-            window: Look-back period in days (default 14).
-
-        Returns:
-            pandas Series of RSI values in the range [0, 100].
-            The first ``window - 1`` values will be ``NaN``.
-        """
-        delta = prices.diff()
-        gain = delta.clip(lower=0)
-        loss = (-delta).clip(lower=0)
-        avg_gain = gain.ewm(com=window - 1, min_periods=window).mean()
-        avg_loss = loss.ewm(com=window - 1, min_periods=window).mean()
-        rs = avg_gain / avg_loss.replace(0, float("nan"))
-        return 100 - (100 / (1 + rs))
+    from indicators import compute_rsi
 
 
     verified = "True"
