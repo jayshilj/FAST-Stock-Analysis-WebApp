@@ -1657,10 +1657,14 @@ def main():
         dataStoch = safe_yf_download(ticker, startStoch, endStoch)
         if not dataStoch.empty and {'High', 'Low', 'Close'}.issubset(dataStoch.columns):
             dataStoch = dataStoch.reset_index()
-            lowest_low = dataStoch['Low'].rolling(stoch_k_window).min()
-            highest_high = dataStoch['High'].rolling(stoch_k_window).max()
-            dataStoch['%K'] = 100 * (dataStoch['Close'] - lowest_low) / (highest_high - lowest_low).replace(0, float('nan'))
-            dataStoch['%D'] = dataStoch['%K'].rolling(stoch_d_window).mean()
+            from indicators import compute_stochastic
+            dataStoch['%K'], dataStoch['%D'] = compute_stochastic(
+                high=dataStoch['High'],
+                low=dataStoch['Low'],
+                close=dataStoch['Close'],
+                k_window=stoch_k_window,
+                d_window=stoch_d_window
+            )
             dataStoch = dataStoch.dropna(subset=['%K', '%D'])
 
             figStoch = go.Figure()
