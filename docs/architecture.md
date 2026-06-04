@@ -23,6 +23,7 @@ graph TD
 1. **Streamlit Orchestrator (`app.py`)**
    * Acts as the main entry point and controls the state machine of the application.
    * Manages layout columns, sidebar configurations, tabs, inputs, and interactive charts.
+   * Directs calculation requests to `indicators.py` rather than performing inline technical indicators math.
    * Handles caching (`@st.cache_data` or `@st.cache_resource`) to speed up duplicate user queries and avoid hitting API rate limits.
 
 2. **Design System & Styling (`ui_theme.py`)**
@@ -31,7 +32,7 @@ graph TD
 
 3. **Core Indicator Calculations (`indicators.py`)**
    * Contain clean, tested, standalone Python implementations of technical analysis indicators (e.g. RSI, MACD, Stochastic Oscillator, ATR, Bollinger Bands).
-   * Decoupled from Streamlit to allow clean unit testing and reuse in CLI scripts or other environments.
+   * Decoupled from Streamlit to allow clean unit testing and reuse in CLI scripts or other environments, fully integrated and consumed by `app.py`.
 
 4. **Testing Suite (`tests/`)**
    * Includes unit test suites for verifying math calculations.
