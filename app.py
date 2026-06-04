@@ -1544,12 +1544,9 @@ def main():
             price_col_bb = get_price_column(dataBB)
             if price_col_bb:
                 dataBB = dataBB.reset_index()
-                dataBB['SMA'] = dataBB[price_col_bb].rolling(bb_window).mean()
-                dataBB['STD'] = dataBB[price_col_bb].rolling(bb_window).std()
-                dataBB['Upper'] = dataBB['SMA'] + bb_std * dataBB['STD']
-                dataBB['Lower'] = dataBB['SMA'] - bb_std * dataBB['STD']
-                dataBB['%B'] = (dataBB[price_col_bb] - dataBB['Lower']) / (dataBB['Upper'] - dataBB['Lower']).replace(0, float('nan'))
-                dataBB['BandWidth'] = (dataBB['Upper'] - dataBB['Lower']) / dataBB['SMA'] * 100
+                from indicators import compute_bollinger
+                bb_df = compute_bollinger(dataBB[price_col_bb], window=bb_window, n_std=bb_std)
+                dataBB = dataBB.join(bb_df)
                 dataBB = dataBB.dropna(subset=['SMA'])
 
                 figBB = go.Figure()
