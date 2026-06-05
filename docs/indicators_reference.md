@@ -87,3 +87,34 @@ Bollinger Bands consist of a middle band (SMA) and two outer standard-deviation 
   * **Volatility Expansion/Contraction**: Bands widen when volatility increases and contract during consolidation (squeeze).
   * **%B Position**: $\%B > 1.0$ means the price is above the upper band; $\%B < 0.0$ means the price is below the lower band.
   * **BandWidth Squeeze**: A historically low BandWidth is often followed by a large price breakout.
+
+---
+
+## 6. Simple Moving Average (SMA)
+
+The Simple Moving Average (SMA) is a trend-following indicator that calculates the average price of a security over a specified number of periods.
+
+* **Function**: `compute_sma(prices, window=20)`
+* **Mathematical Formula**:
+  $$\text{SMA} = \frac{1}{N} \sum_{i=0}^{N-1} \text{Price}_{t-i}$$
+  * Where $N$ is the rolling window size.
+
+* **Interpretation**:
+  * **Trend Direction**: A rising SMA indicates an uptrend, while a falling SMA indicates a downtrend.
+  * **Support/Resistance**: Longer-term SMAs (e.g., 50-day or 200-day) often act as dynamic support or resistance levels.
+
+---
+
+## 7. Exponential Moving Average (EMA)
+
+The Exponential Moving Average (EMA) is a type of moving average that places a greater weight and significance on the most recent data points.
+
+* **Function**: `compute_ema(prices, window=20)`
+* **Mathematical Formula**:
+  $$\text{EMA}_t = \alpha \times \text{Price}_t + (1 - \alpha) \times \text{EMA}_{t-1}$$
+  $$\alpha = \frac{2}{N + 1}$$
+  * Where $N$ is the smoothing window size, and $\alpha$ is the multiplier.
+
+* **Interpretation**:
+  * **Reactivity**: EMA responds more quickly to recent price changes than SMA, making it useful for capturing short-term trends and momentum shifts.
+
