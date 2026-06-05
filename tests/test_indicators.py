@@ -19,6 +19,8 @@ from indicators import (
     compute_macd,
     compute_stochastic,
     compute_bollinger,
+    compute_sma,
+    compute_ema,
 )
 
 
@@ -267,6 +269,8 @@ class TestIndicatorsEdgeCases:
         assert stoch_k.empty and stoch_d.empty
 
         assert compute_bollinger(empty).empty
+        assert compute_sma(empty).empty
+        assert compute_ema(empty).empty
 
     def test_all_nans(self):
         nans = pd.Series([float("nan")] * 20, dtype=float)
@@ -281,6 +285,8 @@ class TestIndicatorsEdgeCases:
 
         bb = compute_bollinger(nans)
         assert bb.isna().all().all()
+        assert compute_sma(nans).isna().all()
+        assert compute_ema(nans).isna().all()
 
     def test_zero_volatility_stochastic(self):
         # High and low are equal, Close is flat. Max - Min = 0.
@@ -291,3 +297,40 @@ class TestIndicatorsEdgeCases:
         stoch_k, stoch_d = compute_stochastic(high, low, close, k_window=5)
         # Should not raise ZeroDivisionError and should return NaN or valid values
         assert len(stoch_k) == n
+
+
+class TestComputeSMA:
+    """Tests for indicators.compute_sma()."""
+
+    def test_sma_values(self):
+        prices = pd.Series([10.0, 20.0, 30.0, 40.0, 50.0])
+        sma = compute_sma(prices, window=3)
+        assert pd.isna(sma.iloc[0])
+        assert pd.isna(sma.iloc[1])
+        assert abs(sma.iloc[2] - 20.0) < 1e-6
+        assert abs(sma.iloc[3] - 30.0) < 1e-6
+        assert abs(sma.iloc[4] - 40.0) < 1e-6
+
+    def test_nan_before_window(self):
+        prices = pd.Series(range(1, 31), dtype=float)
+        sma = compute_sma(prices, window=10)
+        assert sma.iloc[:9].isna().all()
+        assert not sma.iloc[9:].isna().any()
+
+
+class TestComputeEMA:
+    """Tests for indicators.compute_ema()."""
+
+    def test_ema_values(self):
+        prices = pd.Series([10.0, 20.0, 30.0, 40.0, 50.0])
+        ema = compute_ema(prices, window=3)
+        assert pd.isna(ema.iloc[0])
+        assert pd.isna(ema.iloc[1])
+        assert not pd.isna(ema.iloc[2])
+
+    def test_nan_before_window(self):
+        prices = pd.Series(range(1, 31), dtype=float)
+        ema = compute_ema(prices, window=10)
+        assert ema.iloc[:9].isna().all()
+        assert not ema.iloc[9:].isna().any()
+
