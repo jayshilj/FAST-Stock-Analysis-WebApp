@@ -9,6 +9,8 @@ This file follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) conve
 ## [Unreleased]
 
 ### Added
+- **Simple & Exponential Moving Averages (SMA / EMA)** – Added new standalone `compute_sma` and `compute_ema` functions to `indicators.py`.
+- **Unit test suite for SMA / EMA** – Implemented test cases checking values, NaN propagation, and edge cases for the new moving averages.
 - **Developer Documentation Directory** – Created a comprehensive `docs/` repository including guides for `architecture.md`, `indicators_reference.md`, `api_keys_setup.md`, `deployment.md`, `data_sources.md`, and `testing.md`.
 - **Community Standards** – Added root-level open-source guidelines: `CONTRIBUTING.md` for environment setup, `CODE_OF_CONDUCT.md` (Contributor Covenant 2.1), and `SECURITY.md` for coordinated vulnerability reporting.
 - **Enhanced Code Documentation** – Documented app initialization (`install_requirements()`) and main layout entry points (`main()`) in `app.py` with standard Python docstrings.
@@ -21,6 +23,7 @@ This file follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) conve
 - **Indicators Edge Cases Tests** – Wrote unit tests checking empty inputs, NaN series, and zero volatility conditions for the `indicators.py` library.
 
 ### Changed
+- **Standardized Moving Averages Integration** – Refactored the `Dashboard` page and `Company Advanced Details` page in `app.py` to import and consume `compute_sma` and `compute_ema` from the standalone library instead of manually computing them.
 - **`compute_rsi()` helper** – Extracted as a named function near other shared helpers in `app.py`; the inline RSI block in *Company Advanced Details* now calls this helper, eliminating duplication.
 - **`calc_macd()` function** – Now computes and returns the `histogram` column (`macd − signal`) alongside the MACD and signal lines.
 - **Standardized Indicator Integration** – Refactored `app.py` to import and consume mathematical indicators (`compute_rsi`, `compute_bollinger`, `compute_stochastic`, `compute_macd`, `compute_atr`) directly from `indicators.py` instead of executing duplicate inline calculations.
