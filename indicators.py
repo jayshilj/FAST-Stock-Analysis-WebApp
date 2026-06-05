@@ -183,3 +183,30 @@ def compute_bollinger(
             "BandWidth": band_width,
         }
     )
+
+
+def compute_sma(prices: pd.Series, window: int = 20) -> pd.Series:
+    """Compute the Simple Moving Average (SMA).
+
+    Args:
+        prices: Series of prices.
+        window: Rolling window period in days (default 20).
+
+    Returns:
+        pandas Series of SMA values. First ``window - 1`` values are ``NaN``.
+    """
+    return prices.rolling(window=window).mean()
+
+
+def compute_ema(prices: pd.Series, window: int = 20) -> pd.Series:
+    """Compute the Exponential Moving Average (EMA).
+
+    Args:
+        prices: Series of prices.
+        window: Rolling window period in days (default 20).
+
+    Returns:
+        pandas Series of EMA values. First ``window - 1`` values are ``NaN``.
+    """
+    return prices.ewm(span=window, min_periods=window).mean()
+
