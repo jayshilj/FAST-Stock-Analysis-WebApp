@@ -746,8 +746,9 @@ def main():
         with row2_left:
             render_section_card_start(st, "Trend Indicators", "Short moving average view")
             chart_df = price_df.copy()
-            chart_df["SMA_20"] = chart_df[price_col].rolling(20).mean()
-            chart_df["SMA_50"] = chart_df[price_col].rolling(50).mean()
+            from indicators import compute_sma
+            chart_df["SMA_20"] = compute_sma(chart_df[price_col], 20)
+            chart_df["SMA_50"] = compute_sma(chart_df[price_col], 50)
 
             fig_ma = go.Figure()
             fig_ma.add_trace(go.Scatter(x=chart_df["Date"], y=chart_df[price_col], name="Price", line=dict(width=2.5)))
@@ -1340,8 +1341,9 @@ def main():
             price_column = get_price_column(df)
             if price_column is None:
                 return pd.DataFrame()
-            df['sma'] = df[price_column].rolling(size).mean()
-            df['ema'] = df[price_column].ewm(span=size, min_periods=size).mean()
+            from indicators import compute_sma, compute_ema
+            df['sma'] = compute_sma(df[price_column], size)
+            df['ema'] = compute_ema(df[price_column], size)
             df.dropna(inplace=True)
             return df
 
@@ -1351,8 +1353,8 @@ def main():
             if price_column is None:
                 return pd.DataFrame()
             # Retain ema26 for chart plotting compatibility
-            df['ema26'] = df[price_column].ewm(span=26, min_periods=26).mean()
-            from indicators import compute_macd
+            from indicators import compute_macd, compute_ema
+            df['ema26'] = compute_ema(df[price_column], 26)
             df['macd'], df['signal'], df['histogram'] = compute_macd(df[price_column])
             df.dropna(inplace=True)
             return df
