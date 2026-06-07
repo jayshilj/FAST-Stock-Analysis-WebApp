@@ -3,7 +3,7 @@
 This module exposes standalone, stateless indicator functions that work on
 pandas Series / DataFrames and have no Streamlit dependency.  Each function
 mirrors the logic used inline in ``app.py`` and is covered by the unit-test
-suite in ``tests/test_helpers.py``.
+suite in ``tests/test_indicators.py``.
 
 Indicator functions
 -------------------
@@ -21,6 +21,21 @@ compute_stochastic(high, low, close, k_window, d_window)
 
 compute_bollinger(prices, window, n_std)
     Bollinger Bands (upper, middle/SMA, lower, %B, band-width).
+
+compute_sma(prices, window)
+    Simple Moving Average.
+
+compute_ema(prices, window)
+    Exponential Moving Average using EWM with span.
+
+compute_vwap(high, low, close, volume)
+    Volume Weighted Average Price (cumulative).
+
+compute_obv(close, volume)
+    On-Balance Volume (cumulative directional volume).
+
+compute_cci(high, low, close, window, constant)
+    Commodity Channel Index measuring deviation from rolling mean.
 """
 from __future__ import annotations
 
@@ -210,3 +225,91 @@ def compute_ema(prices: pd.Series, window: int = 20) -> pd.Series:
     """
     return prices.ewm(span=window, min_periods=window).mean()
 
+
+def compute_vwap(
+    high: pd.Series,
+    low: pd.Series,
+    close: pd.Series,
+    volume: pd.Series,
+) -> pd.Series:
+    """Compute the Volume Weighted Average Price (VWAP).
+
+    VWAP is the cumulative sum of (Typical Price x Volume) divided by the
+    cumulative sum of Volume.  It represents the average price weighted by
+    trading activity and is widely used as a fair-value benchmark.
+
+    Typical Price = (High + Low + Close) / 3
+
+    Args:
+        high:   Series of daily high prices.
+        low:    Series of daily low prices.
+        close:  Series of daily closing prices.
+        volume: Series of daily trading volumes.
+
+    Returns:
+        pandas Series of VWAP values (same index as inputs).
+        Returns NaN for any row where cumulative volume is zero.
+    """
+    typical_price = (high + low + close) / 3.0
+    cum_vol = volume.cumsum()
+    cum_tp_vol = (typical_price * volume).cumsum()
+    vwap = cum_tp_vol / cum_vol.replace(0, float("nan"))
+    return vwap
+
+
+def compute_obv(close: pd.Series, volume: pd.Series) -> pd.Series:
+    """Compute On-Balance Volume (OBV).
+
+    OBV is a cumulative volume momentum indicator.  On a day when the closing
+    price rises above the previous close, volume is added; on a down day,
+    volume is subtracted; on a flat day, OBV is unchanged.
+
+    Args:
+        close:  Series of daily closing prices.
+        volume: Series of daily trading volumes.
+
+    Returns:
+        pandas Series of OBV values starting at 0 (same index as inputs).
+    """
+    direction = close.diff().apply(
+        lambda x: 1 if x > 0 else (-1 if x < 0 else 0)
+    )
+    direction.iloc[0] = 0  # First day has no prior close
+    obv = (direction * volume).cumsum()
+    return obv
+
+
+def compute_cci(
+    high: pd.Series,
+    low: pd.Series,
+    close: pd.Series,
+    window: int = 20,
+    constant: float = 0.015,
+) -> pd.Series:
+    """Compute the Commodity Channel Index (CCI).
+
+    CCI measures how far the Typical Price deviates from its rolling mean,
+    normalised by the mean absolute deviation (MAD) times a scaling constant.
+
+    CCI = (Typical Price - SMA(TP)) / (constant * MAD)
+
+    Values above +100 are traditionally considered overbought; below -100,
+    oversold.
+
+    Args:
+        high:     Series of daily high prices.
+        low:      Series of daily low prices.
+        close:    Series of daily closing prices.
+        window:   Rolling look-back period (default 20).
+        constant: Lambert constant for normalisation (default 0.015).
+
+    Returns:
+        pandas Series of CCI values.  First ``window - 1`` values are ``NaN``.
+    """
+    typical_price = (high + low + close) / 3.0
+    sma_tp = typical_price.rolling(window).mean()
+    mad = typical_price.rolling(window).apply(
+        lambda x: np.mean(np.abs(x - x.mean())), raw=True
+    )
+    cci = (typical_price - sma_tp) / (constant * mad.replace(0, float("nan")))
+    return cci
