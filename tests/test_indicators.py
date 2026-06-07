@@ -21,6 +21,9 @@ from indicators import (
     compute_bollinger,
     compute_sma,
     compute_ema,
+    compute_vwap,
+    compute_obv,
+    compute_cci,
 )
 
 
@@ -334,3 +337,145 @@ class TestComputeEMA:
         assert ema.iloc[:9].isna().all()
         assert not ema.iloc[9:].isna().any()
 
+
+# ---------------------------------------------------------------------------
+# compute_vwap
+# ---------------------------------------------------------------------------
+
+class TestComputeVWAP:
+    """Tests for indicators.compute_vwap()."""
+
+    def test_returns_series(self):
+        n = 30
+        h = pd.Series([101.0] * n)
+        l = pd.Series([99.0] * n)
+        c = pd.Series([100.0] * n)
+        v = pd.Series([1_000_000.0] * n)
+        result = compute_vwap(h, l, c, v)
+        assert isinstance(result, pd.Series)
+        assert len(result) == n
+
+    def test_vwap_equals_typical_price_when_volume_constant(self):
+        """When typical price is constant, VWAP should equal that price."""
+        n = 20
+        h = pd.Series([102.0] * n)
+        l = pd.Series([98.0] * n)
+        c = pd.Series([100.0] * n)
+        v = pd.Series([500_000.0] * n)
+        result = compute_vwap(h, l, c, v)
+        # Typical price = (102 + 98 + 100) / 3 = 100.0
+        assert (result.dropna() - 100.0).abs().max() < 1e-6
+
+    def test_vwap_non_negative_for_positive_prices(self, volatile_ohlc):
+        high, low, close = volatile_ohlc
+        volume = pd.Series([1_000_000] * len(close), dtype=float)
+        result = compute_vwap(high, low, close, volume)
+        assert (result.dropna() >= 0).all()
+
+    def test_zero_volume_returns_nan(self):
+        h = pd.Series([100.0, 101.0])
+        l = pd.Series([99.0, 100.0])
+        c = pd.Series([100.0, 100.5])
+        v = pd.Series([0.0, 0.0])
+        result = compute_vwap(h, l, c, v)
+        assert result.isna().all()
+
+    def test_same_length_as_input(self, volatile_ohlc):
+        high, low, close = volatile_ohlc
+        volume = pd.Series([1_000_000] * len(close), dtype=float)
+        result = compute_vwap(high, low, close, volume)
+        assert len(result) == len(close)
+
+
+# ---------------------------------------------------------------------------
+# compute_obv
+# ---------------------------------------------------------------------------
+
+class TestComputeOBV:
+    """Tests for indicators.compute_obv()."""
+
+    def test_returns_series_same_length(self):
+        close = pd.Series([100.0, 101.0, 100.5, 102.0])
+        volume = pd.Series([1e6, 1.2e6, 0.8e6, 1.5e6])
+        result = compute_obv(close, volume)
+        assert isinstance(result, pd.Series)
+        assert len(result) == len(close)
+
+    def test_rising_prices_obv_increases(self):
+        """Monotonically rising prices should produce a monotonically rising OBV."""
+        close = pd.Series([100.0, 101.0, 102.0, 103.0, 104.0])
+        volume = pd.Series([1e6, 1e6, 1e6, 1e6, 1e6])
+        obv = compute_obv(close, volume)
+        diffs = obv.diff().dropna()
+        assert (diffs >= 0).all()
+
+    def test_falling_prices_obv_decreases(self):
+        """Monotonically falling prices should produce a monotonically falling OBV."""
+        close = pd.Series([104.0, 103.0, 102.0, 101.0, 100.0])
+        volume = pd.Series([1e6, 1e6, 1e6, 1e6, 1e6])
+        obv = compute_obv(close, volume)
+        diffs = obv.diff().dropna()
+        assert (diffs <= 0).all()
+
+    def test_starts_at_zero(self):
+        close = pd.Series([100.0, 101.0, 100.0])
+        volume = pd.Series([1e6, 1.2e6, 0.9e6])
+        obv = compute_obv(close, volume)
+        assert obv.iloc[0] == 0.0
+
+    def test_flat_prices_obv_unchanged(self):
+        close = pd.Series([100.0, 100.0, 100.0, 100.0])
+        volume = pd.Series([1e6, 1e6, 1e6, 1e6])
+        obv = compute_obv(close, volume)
+        # All deltas are zero, so OBV stays at 0 throughout
+        assert (obv == 0.0).all()
+
+
+# ---------------------------------------------------------------------------
+# compute_cci
+# ---------------------------------------------------------------------------
+
+class TestComputeCCI:
+    """Tests for indicators.compute_cci()."""
+
+    def test_returns_series(self, volatile_ohlc):
+        high, low, close = volatile_ohlc
+        result = compute_cci(high, low, close)
+        assert isinstance(result, pd.Series)
+        assert len(result) == len(close)
+
+    def test_nan_before_window(self, volatile_ohlc):
+        high, low, close = volatile_ohlc
+        result = compute_cci(high, low, close, window=20)
+        assert result.iloc[:19].isna().all()
+
+    def test_overbought_when_price_spikes(self):
+        """A sharp spike above the rolling mean should produce CCI > 100."""
+        n = 30
+        base = [100.0] * n
+        base[-1] = 200.0  # Big spike at the end
+        close = pd.Series(base)
+        high = close + 1.0
+        low = close - 1.0
+        cci = compute_cci(high, low, close, window=20).dropna()
+        assert len(cci) > 0
+        assert cci.iloc[-1] > 100
+
+    def test_oversold_when_price_drops(self):
+        """A sharp drop below the rolling mean should produce CCI < -100."""
+        n = 30
+        base = [100.0] * n
+        base[-1] = 20.0  # Big drop at the end
+        close = pd.Series(base)
+        high = close + 1.0
+        low = close - 1.0
+        cci = compute_cci(high, low, close, window=20).dropna()
+        assert len(cci) > 0
+        assert cci.iloc[-1] < -100
+
+    def test_custom_window(self, volatile_ohlc):
+        high, low, close = volatile_ohlc
+        cci10 = compute_cci(high, low, close, window=10).dropna()
+        cci30 = compute_cci(high, low, close, window=30).dropna()
+        # Different windows produce different series lengths
+        assert len(cci10) > len(cci30)
