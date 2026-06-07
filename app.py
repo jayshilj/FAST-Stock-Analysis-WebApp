@@ -53,7 +53,7 @@ def main():
 
     st.set_page_config(
         page_title=APP_BRAND_FULL,
-        page_icon="📈",
+        page_icon="ðŸ“ˆ",
         layout="wide",
         initial_sidebar_state="expanded",
     )
@@ -110,9 +110,9 @@ def main():
 
     def compute_quick_stats(info, price_df):
         stats = {
-            "price": "—",
-            "change_pct": "—",
-            "volume": "—",
+            "price": "â€”",
+            "change_pct": "â€”",
+            "volume": "â€”",
             "signal": "Neutral",
         }
 
@@ -262,13 +262,13 @@ def main():
 
             if sent.lower() == "positive":
                 color = "#22C55E"
-                dot = "🟢"
+                dot = "ðŸŸ¢"
             elif sent.lower() == "negative":
                 color = "#EF4444"
-                dot = "🔴"
+                dot = "ðŸ”´"
             else:
                 color = "#F59E0B"
-                dot = "🟡"
+                dot = "ðŸŸ¡"
 
             ts = f"{date_val} {time_val}".strip()
 
@@ -392,7 +392,7 @@ def main():
 
         normalized = df.copy()
 
-        # Flatten MultiIndex columns from yfinance (order is often Ticker × OHLCV).
+        # Flatten MultiIndex columns from yfinance (order is often Ticker Ã— OHLCV).
         if isinstance(normalized.columns, pd.MultiIndex):
             ohlcv = {'Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume'}
             level0 = set(normalized.columns.get_level_values(0).unique())
@@ -444,7 +444,7 @@ def main():
         )
 
     def _ohlcv_from_history(sym, start=None, end=None, ticker=None):
-        """Single-symbol OHLCV via Ticker.history — usually more reliable than download()."""
+        """Single-symbol OHLCV via Ticker.history â€” usually more reliable than download()."""
         start_s = start.strftime('%Y-%m-%d') if hasattr(start, 'strftime') else start
         end_s = end.strftime('%Y-%m-%d') if hasattr(end, 'strftime') else end
         hist = cached_history_data(sym, start_s, end_s)
@@ -615,7 +615,7 @@ def main():
         monthly = d_reset.set_index('ds')['y'].resample('ME').mean()
         fig2.add_trace(go.Scatter(x=monthly.index, y=monthly.values, mode='lines', name='Monthly Avg', line=dict(color='#D55E00', width=2)), row=1, col=1)
         
-        quarter_names = ['Q1 (Jan–Mar)', 'Q2 (Apr–Jun)', 'Q3 (Jul–Sep)', 'Q4 (Oct–Dec)']
+        quarter_names = ['Q1 (Janâ€“Mar)', 'Q2 (Aprâ€“Jun)', 'Q3 (Julâ€“Sep)', 'Q4 (Octâ€“Dec)']
         quarter_means = d_reset.groupby(d_reset['ds'].dt.quarter)['y'].mean().reindex([1, 2, 3, 4], fill_value=0)
         fig2.add_trace(go.Bar(x=quarter_names, y=[quarter_means.get(i, 0) for i in [1, 2, 3, 4]], name='Quarter Avg', marker_color=['#6366F1', '#22C55E', '#F59E0B', '#EF4444']), row=2, col=1)
 
@@ -634,7 +634,7 @@ def main():
 
     page = render_sidebar_navigation(st)
 
-    # ── Shared S&P 500 ticker selector (persists across pages) ──
+    # â”€â”€ Shared S&P 500 ticker selector (persists across pages) â”€â”€
     snp500 = pd.read_csv("./Datasets/SP500.csv")
     symbols = snp500['Symbol'].sort_values().tolist()
 
@@ -885,7 +885,7 @@ def main():
             
         col1, col2 = st.columns([3, 1])
         with col2:
-            st.markdown("### ⚙️ AI Configuration")
+            st.markdown("### âš™ï¸ AI Configuration")
             model_provider = st.selectbox(
                 "Select Model Provider", 
                 ["Google Gemini (2.5 Flash)", "Perplexity (Sonar)"]
@@ -951,7 +951,7 @@ def main():
                             
                         sys_prompt = f"""
                         You are a stock research analyst assistant embedded in a financial dashboard.
-                        You MUST only reference the data provided below — never invent prices, metrics, or news.
+                        You MUST only reference the data provided below â€” never invent prices, metrics, or news.
                         Structure your response with clear markdown headings.
                         End with a brief disclaimer that this is not financial advice.
                         
@@ -1241,21 +1241,21 @@ def main():
             feed_col1, feed_col2 = st.columns(2)
             
             with feed_col1:
-                st.markdown("#### 📈 StockTwits & News Feed")
+                st.markdown("#### ðŸ“ˆ StockTwits & News Feed")
                 with st.container(height=400):
                     if st_messages:
                         for msg in st_messages[:20]:
-                            with st.chat_message("user", avatar="💬"):
+                            with st.chat_message("user", avatar="ðŸ’¬"):
                                 st.write(msg)
                     else:
                         st.write("No recent messages.")
                         
             with feed_col2:
-                st.markdown("#### 👽 Reddit Feed (WallStreetBets & Stocks)")
+                st.markdown("#### ðŸ‘½ Reddit Feed (WallStreetBets & Stocks)")
                 with st.container(height=400):
                     if reddit_messages:
                         for msg in reddit_messages[:20]:
-                            with st.chat_message("user", avatar="👽"):
+                            with st.chat_message("user", avatar="ðŸ‘½"):
                                 st.write(msg)
                     else:
                         st.write("No recent discussions.")
@@ -1503,7 +1503,7 @@ def main():
         figMACD.update_yaxes(tickprefix="$")
         st.plotly_chart(figMACD, use_container_width=True, theme="streamlit")
 
-        # ── Relative Strength Index (RSI) ─────────────────────────────────────
+        # â”€â”€ Relative Strength Index (RSI) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         st.subheader('Relative Strength Index (RSI)')
         numYearRSI = st.number_input('Insert period (Year): ', min_value=1, max_value=10, value=1, key=3)
         rsi_window = st.slider('RSI Window (Days):', min_value=7, max_value=30, value=14, key='rsi_window')
@@ -1530,9 +1530,9 @@ def main():
                 st.plotly_chart(figRSI, use_container_width=True, theme='streamlit')
                 st.caption(f'RSI({rsi_window}): Values above 70 suggest overbought conditions; below 30 suggest oversold conditions.')
             else:
-                st.warning('Price column missing — cannot compute RSI.')
+                st.warning('Price column missing â€” cannot compute RSI.')
 
-        # ── Bollinger Bands ───────────────────────────────────────────────────
+        # â”€â”€ Bollinger Bands â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         st.subheader('Bollinger Bands')
         numYearBB = st.number_input('Insert period (Year): ', min_value=1, max_value=10, value=1, key=4)
         bb_window = st.slider('Bollinger Window (Days):', min_value=5, max_value=50, value=20, key='bb_window')
@@ -1553,12 +1553,12 @@ def main():
                 figBB = go.Figure()
                 figBB.add_trace(go.Scatter(
                     x=dataBB['Date'], y=dataBB['Upper'],
-                    name=f'Upper Band (+{bb_std}σ)',
+                    name=f'Upper Band (+{bb_std}Ïƒ)',
                     line=dict(color='rgba(239,68,68,0.6)', width=1, dash='dot')
                 ))
                 figBB.add_trace(go.Scatter(
                     x=dataBB['Date'], y=dataBB['Lower'],
-                    name=f'Lower Band (-{bb_std}σ)',
+                    name=f'Lower Band (-{bb_std}Ïƒ)',
                     line=dict(color='rgba(34,197,94,0.6)', width=1, dash='dot'),
                     fill='tonexty',
                     fillcolor='rgba(99,102,241,0.07)'
@@ -1581,7 +1581,7 @@ def main():
                 )
                 st.plotly_chart(figBB, use_container_width=True, theme='streamlit')
                 st.caption(
-                    f'Bollinger Bands ({bb_window}-day SMA ± {bb_std}σ): '
+                    f'Bollinger Bands ({bb_window}-day SMA Â± {bb_std}Ïƒ): '
                     'Price touching the upper band may signal overbought; lower band may signal oversold.'
                 )
 
@@ -1602,10 +1602,10 @@ def main():
                 st.plotly_chart(figBW, use_container_width=True, theme='streamlit')
                 st.caption('Band Width: Low values indicate a squeeze (consolidation); spikes often precede breakout moves.')
             else:
-                st.warning('Price column missing — cannot compute Bollinger Bands.')
+                st.warning('Price column missing â€” cannot compute Bollinger Bands.')
 
-        # ── Average True Range (ATR) ──────────────────────────────────────────
-        st.subheader('Average True Range (ATR) – Volatility Meter')
+        # â”€â”€ Average True Range (ATR) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        st.subheader('Average True Range (ATR) â€“ Volatility Meter')
         numYearATR = st.number_input('Insert period (Year): ', min_value=1, max_value=10, value=1, key=5)
         atr_window = st.slider('ATR Window (Days):', min_value=5, max_value=50, value=14, key='atr_window')
 
@@ -1642,9 +1642,9 @@ def main():
                 'a falling ATR suggests the market is consolidating.'
             )
         else:
-            st.warning('High/Low/Close columns missing — cannot compute ATR.')
+            st.warning('High/Low/Close columns missing â€” cannot compute ATR.')
 
-        # ── Stochastic Oscillator (%K / %D) ──────────────────────────────────
+        # â”€â”€ Stochastic Oscillator (%K / %D) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         st.subheader('Stochastic Oscillator (%K / %D)')
         numYearStoch = st.number_input('Insert period (Year): ', min_value=1, max_value=10, value=1, key=6)
         stoch_k_window = st.slider('%K Lookback Window (Days):', min_value=5, max_value=30, value=14, key='stoch_k')
@@ -1691,10 +1691,53 @@ def main():
                 'Values above 80 suggest overbought conditions; below 20 suggest oversold.'
             )
         else:
-            st.warning('High/Low/Close columns missing — cannot compute Stochastic Oscillator.')
+            st.warning('High/Low/Close columns missing â€” cannot compute Stochastic Oscillator.')
 
 
 
+
+
+        # -- Volume Weighted Average Price (VWAP) --------------------------------
+        st.subheader('Volume Weighted Average Price (VWAP)')
+        numYearVWAP = st.number_input('Insert period (Year): ', min_value=1, max_value=5, value=1, key=7)
+
+        startVWAP = dt.datetime.today() - dt.timedelta(numYearVWAP * 365)
+        endVWAP = dt.datetime.today()
+        dataVWAP = safe_yf_download(ticker, startVWAP, endVWAP)
+        required_vwap_cols = {'High', 'Low', 'Close', 'Volume'}
+        if not dataVWAP.empty and required_vwap_cols.issubset(dataVWAP.columns):
+            dataVWAP = dataVWAP.reset_index()
+            from indicators import compute_vwap
+            dataVWAP['VWAP'] = compute_vwap(
+                high=dataVWAP['High'],
+                low=dataVWAP['Low'],
+                close=dataVWAP['Close'],
+                volume=dataVWAP['Volume'],
+            )
+            price_col_vwap = get_price_column(dataVWAP)
+            figVWAP = go.Figure()
+            if price_col_vwap:
+                figVWAP.add_trace(go.Scatter(
+                    x=dataVWAP['Date'], y=dataVWAP[price_col_vwap],
+                    name='Price',
+                    line=dict(color='#6366F1', width=2),
+                ))
+            figVWAP.add_trace(go.Scatter(
+                x=dataVWAP['Date'], y=dataVWAP['VWAP'],
+                name='VWAP',
+                line=dict(color='#F59E0B', width=2, dash='dot'),
+            ))
+            figVWAP.update_layout(
+                xaxis_title='Date',
+                yaxis=dict(title='Price (USD)', tickprefix='$'),
+                legend=dict(orientation='h', yanchor='bottom', y=1, xanchor='left', x=0),
+            )
+            st.plotly_chart(figVWAP, use_container_width=True, theme='streamlit')
+            st.caption(
+                'VWAP (Volume Weighted Average Price): Prices above VWAP signal bullish momentum; below VWAP signals bearish pressure.'
+            )
+        else:
+            st.warning('High/Low/Close/Volume columns missing -- cannot compute VWAP.')
 
     elif page == "Live News Sentiment":
         page_title(st, "News & sentiment", "Headlines and VADER scores from Finviz")
@@ -1768,7 +1811,7 @@ def main():
             st.info(info.get('longBusinessSummary', 'N/A'))
 
             def _fmt_p(v, is_ratio=False):
-                if v is None or v == 'N/A': return '—'
+                if v is None or v == 'N/A': return 'â€”'
                 try:
                     f = float(v)
                     if is_ratio or abs(f) < 0.1: return f"{f*100:.2f}%"
