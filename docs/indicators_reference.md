@@ -1,4 +1,4 @@
-# Technical Indicators Mathematical Reference
+﻿# Technical Indicators Mathematical Reference
 
 This reference documentation describes the core technical analysis indicators implemented in [indicators.py](file:///c:/Users/jaysh/OpenSourceContributions/FAST-Stock-Analysis-WebApp/indicators.py), including equations, parameters, and typical trading signals.
 
@@ -117,4 +117,57 @@ The Exponential Moving Average (EMA) is a type of moving average that places a g
 
 * **Interpretation**:
   * **Reactivity**: EMA responds more quickly to recent price changes than SMA, making it useful for capturing short-term trends and momentum shifts.
+---
 
+## 8. Volume Weighted Average Price (VWAP)
+
+VWAP is the ratio of cumulative (Typical Price × Volume) to cumulative Volume. It represents the average price weighted by trading activity.
+
+* **Function**: `compute_vwap(high, low, close, volume)`
+* **Mathematical Formula**:
+  $$\text{Typical Price (TP)} = \frac{\text{High} + \text{Low} + \text{Close}}{3}$$
+  $$\text{VWAP} = \frac{\sum_{i=1}^{t} \text{TP}_i \times \text{Volume}_i}{\sum_{i=1}^{t} \text{Volume}_i}$$
+
+* **Interpretation**:
+  * **Bullish signal**: Price trading above VWAP indicates buyers are in control.
+  * **Bearish signal**: Price trading below VWAP indicates sellers are dominant.
+  * **Fair value**: VWAP is frequently used by institutional traders as a benchmark for execution quality.
+  * **Support/Resistance**: VWAP often acts as a dynamic intraday support or resistance level.
+
+---
+
+## 9. On-Balance Volume (OBV)
+
+OBV is a cumulative volume-based momentum indicator that relates volume flow to price changes.
+
+* **Function**: `compute_obv(close, volume)`
+* **Mathematical Formula**:
+  $$\text{OBV}_t = \text{OBV}_{t-1} +
+  \begin{cases}
+  +\text{Volume}_t & \text{if Close}_t > \text{Close}_{t-1} \\
+  -\text{Volume}_t & \text{if Close}_t < \text{Close}_{t-1} \\
+  0 & \text{if Close}_t = \text{Close}_{t-1}
+  \end{cases}$$
+
+* **Interpretation**:
+  * **Trend confirmation**: Rising OBV alongside rising price confirms an uptrend.
+  * **Divergence**: OBV rising while price falls (or vice versa) signals a potential reversal.
+  * **Breakout validation**: A breakout accompanied by increasing OBV is considered more reliable.
+
+---
+
+## 10. Commodity Channel Index (CCI)
+
+CCI measures how far the Typical Price has deviated from its rolling average, normalised by the mean absolute deviation.
+
+* **Function**: `compute_cci(high, low, close, window=20, constant=0.015)`
+* **Mathematical Formula**:
+  $$\text{TP} = \frac{\text{High} + \text{Low} + \text{Close}}{3}$$
+  $$\text{CCI} = \frac{\text{TP} - \text{SMA}(\text{TP}, N)}{0.015 \times \text{MAD}(\text{TP}, N)}$$
+  * Where $\text{MAD} = \frac{1}{N}\sum_{i=0}^{N-1}|\text{TP}_{t-i} - \text{Mean}(\text{TP})|$ is the Mean Absolute Deviation.
+  * The Lambert constant 0.015 ensures roughly 70-80% of CCI values fall within the ±100 range for normal distributions.
+
+* **Interpretation**:
+  * **Overbought (> +100)**: Asset may be extended to the upside; consider caution on new longs.
+  * **Oversold (< -100)**: Asset may be oversold; potential for a mean-reversion rally.
+  * **Zero crossing**: A CCI crossing above 0 from below signals emerging upward momentum.
