@@ -1,4 +1,4 @@
-"""ui_theme.py – FAST Financial Dashboard Design System.
+"""ui_theme.py â€“ FAST Financial Dashboard Design System.
 
 This module provides the centralised CSS injection, navigation layout, and
 HTML component renderers for the FAST Stock Analysis WebApp.
@@ -17,7 +17,7 @@ Design tokens:
     - Positive sentiment: #22C55E (green)
     - Negative sentiment: #EF4444 (red)
     - Neutral sentiment: #F59E0B (amber)
-    - Typography: Google Fonts – Inter (400/500/600/700/800)
+    - Typography: Google Fonts â€“ Inter (400/500/600/700/800)
 
 All render_* functions accept a ``st`` parameter (the ``streamlit`` module
 reference) to avoid a top-level import of Streamlit, which keeps this
@@ -33,16 +33,16 @@ APP_BRAND_FULL = "Financial Analysis and Stock Trading Analysis"
 APP_BRAND_TAGLINE = "Real-time market insights"
 
 NAV_DEFINITION = [
-    ("Dashboard", "✨", "Dashboard"),
-    ("About the Project", "🏠", "Overview"),
-    ("Agentic Research Bot", "🤖", "Agentic Bots"),
-    ("Live News Sentiment", "📰", "News & sentiment"),
-    ("Company Basic Details", "📋", "Company profile"),
-    ("Company Advanced Details", "📊", "Technicals"),
-    ("Google Trends with Forecast", "🔎", "Search trends"),
-    ("Social Media Trends", "💬", "Social trends"),
-    ("Meeting Summarization", "🎙️", "Meeting notes"),
-    ("Stock Future Prediction", "🔮", "Forecast"),
+    ("Dashboard", "âœ¨", "Dashboard"),
+    ("About the Project", "ðŸ ", "Overview"),
+    ("Agentic Research Bot", "ðŸ¤–", "Agentic Bots"),
+    ("Live News Sentiment", "ðŸ“°", "News & sentiment"),
+    ("Company Basic Details", "ðŸ“‹", "Company profile"),
+    ("Company Advanced Details", "ðŸ“Š", "Technicals"),
+    ("Google Trends with Forecast", "ðŸ”Ž", "Search trends"),
+    ("Social Media Trends", "ðŸ’¬", "Social trends"),
+    ("Meeting Summarization", "ðŸŽ™ï¸", "Meeting notes"),
+    ("Stock Future Prediction", "ðŸ”®", "Forecast"),
 ]
 
 
@@ -507,9 +507,9 @@ def render_top_bar(st):
     """Render the branded top navigation bar with live timestamp.
 
     Displays the APP_BRAND_FULL name (with the first word highlighted in the
-    primary colour) and the current date/time in ``YYYY-MM-DD · HH:MM`` format.
+    primary colour) and the current date/time in ``YYYY-MM-DD Â· HH:MM`` format.
     """
-    now = datetime.now().strftime("%Y-%m-%d · %H:%M")
+    now = datetime.now().strftime("%Y-%m-%d Â· %H:%M")
     first, _, rest = APP_BRAND_FULL.partition(" ")
     brand_html = '<p class="topbar-brand"><span>{}</span> {}</p>'.format(
         escape(first), escape(rest)
@@ -520,7 +520,7 @@ def render_top_bar(st):
         <div class="topbar-wrap">
           <div class="topbar-inner">
             {brand}
-            <p class="topbar-meta">Live dashboard · {now}</p>
+            <p class="topbar-meta">Live dashboard Â· {now}</p>
           </div>
         </div>
         """.format(brand=brand_html, now=now),
@@ -566,16 +566,16 @@ def render_sidebar_navigation(st):
 
     st.sidebar.markdown("---")
     st.sidebar.caption("Smart market workspace")
-    st.sidebar.caption("News · Forecast · Technicals · Fundamentals")
+    st.sidebar.caption("News Â· Forecast Â· Technicals Â· Fundamentals")
 
     st.sidebar.markdown(
         """
         <div class="sidebar-dev-card">
-            <div class="dev-name">👨‍💻 Developed by Jayshil Jain</div>
+            <div class="dev-name">ðŸ‘¨â€ðŸ’» Developed by Jayshil Jain</div>
             <div class="dev-links">
-                <a class="dev-link" href="https://github.com/jayshilj/GeoPulseWebApp" target="_blank">📂 GitHub Repository</a>
-                <a class="dev-link" href="https://www.linkedin.com/in/jayshiljain/" target="_blank">🔗 LinkedIn Profile</a>
-                <a class="dev-link" href="https://www.jayshil.com/" target="_blank">🌐 Personal Website</a>
+                <a class="dev-link" href="https://github.com/jayshilj/GeoPulseWebApp" target="_blank">ðŸ“‚ GitHub Repository</a>
+                <a class="dev-link" href="https://www.linkedin.com/in/jayshiljain/" target="_blank">ðŸ”— LinkedIn Profile</a>
+                <a class="dev-link" href="https://www.jayshil.com/" target="_blank">ðŸŒ Personal Website</a>
             </div>
         </div>
         """,
@@ -684,7 +684,7 @@ def render_company_hero(st, ticker, info):
     if isinstance(price, (int, float)):
         price_txt = "{:,.2f}".format(price)
     else:
-        price_txt = str(price) if price else "—"
+        price_txt = str(price) if price else "â€”"
 
     st.markdown(
         """
@@ -707,7 +707,7 @@ def render_company_hero(st, ticker, info):
 
 def _fmt_metric(v):
     if v is None or v == "N/A":
-        return "—"
+        return "â€”"
     try:
         if isinstance(v, (int, float)):
             if abs(v) >= 1e12:
@@ -730,7 +730,7 @@ def render_metric_strip(st, info):
     divy = info.get("dividendYield")
     trailing = info.get("trailingAnnualDividendYield")
     
-    divy_disp = "—"
+    divy_disp = "â€”"
     if isinstance(divy, (int, float)):
         # Heuristic to detect percentage vs decimal
         if isinstance(trailing, (int, float)) and trailing > 0:
