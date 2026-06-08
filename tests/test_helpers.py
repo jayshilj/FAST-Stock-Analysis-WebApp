@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Unit tests for FAST Stock Analysis WebApp helper utilities.
 
@@ -18,17 +19,24 @@ import pytest
 # Helpers imported from ui_theme (no Streamlit runtime required)
 # ---------------------------------------------------------------------------
 sys.path.insert(0, ".")
-from ui_theme import _fmt_metric, render_sentiment_badge, APP_BRAND_FULL, NAV_DEFINITION
+from ui_theme import (
+    _fmt_metric,
+    render_sentiment_badge,
+    render_alert_banner,
+    render_metric_delta_card,
+    APP_BRAND_FULL,
+    NAV_DEFINITION,
+)
 
 
 class TestFmtMetric:
     """Tests for ui_theme._fmt_metric() value formatter."""
 
     def test_none_returns_dash(self):
-        assert _fmt_metric(None) == "—"
+        assert _fmt_metric(None) == "\u2014"
 
     def test_na_string_returns_dash(self):
-        assert _fmt_metric("N/A") == "—"
+        assert _fmt_metric("N/A") == "\u2014"
 
     def test_trillions(self):
         result = _fmt_metric(2_500_000_000_000)
@@ -234,7 +242,7 @@ class TestRSIComputation:
 
 
 class TestATRComputation:
-    """Validate the Average True Range (ATR) calculation logic added to Company Advanced Details."""
+    """Validate the Average True Range (ATR) calculation logic."""
 
     @staticmethod
     def compute_atr(high: pd.Series, low: pd.Series, close: pd.Series, window: int = 14) -> pd.Series:
@@ -276,7 +284,7 @@ class TestATRComputation:
         close = pd.Series([100.0] * n, dtype=float)
         atr = self.compute_atr(high, low, close).dropna()
         assert len(atr) > 0
-        assert atr.iloc[-1] < 2.0  # Tight range → small ATR
+        assert atr.iloc[-1] < 2.0
 
     def test_volatile_market_high_atr(self):
         """A highly volatile market should have a larger ATR than a flat market."""
@@ -369,19 +377,98 @@ class TestMACDHistogram:
         pd.testing.assert_series_equal(diff[common_idx], hist_clean[common_idx], check_names=False)
 
     def test_histogram_sign_bullish(self):
-        """Rising prices should produce a positive histogram (macd > signal)."""
+        """Rising prices should produce a non-extreme histogram value."""
         prices = pd.Series([100 + i * 0.5 for i in range(100)], dtype=float)
         _, _, histogram = self.compute_macd(prices)
         hist_clean = histogram.dropna()
         assert len(hist_clean) > 0
-        # With a pure uptrend the fast EMA should stay above the slow EMA
-        # but histogram can momentarily dip as signal catches up; last value should be ≥ 0
-        # We just confirm no extreme negative values in steady uptrend
         assert hist_clean.iloc[-1] > -5.0
 
     def test_nan_before_slow_window(self):
         """Histogram must be NaN for the first slow+signal-1 values."""
         prices = pd.Series(list(range(1, 101)), dtype=float)
         _, _, histogram = self.compute_macd(prices, fast=12, slow=26, signal=9)
-        # The first non-NaN histogram value appears after slow + signal - 2 bars
         assert histogram.iloc[:33].isna().all()
+
+
+# ---------------------------------------------------------------------------
+# render_alert_banner
+# ---------------------------------------------------------------------------
+
+class TestRenderAlertBanner:
+    """Tests for ui_theme.render_alert_banner() HTML output."""
+
+    def setup_method(self):
+        self.captured = []
+        self.st_mock = types.SimpleNamespace(
+            markdown=lambda html, **kw: self.captured.append(html)
+        )
+
+    def test_info_banner_contains_message(self):
+        render_alert_banner(self.st_mock, "Hello world", "info")
+        assert "Hello world" in self.captured[-1]
+
+    def test_warning_banner_amber_colour(self):
+        render_alert_banner(self.st_mock, "Overbought", "warning")
+        html = self.captured[-1]
+        assert "#F59E0B" in html
+
+    def test_success_banner_green_colour(self):
+        render_alert_banner(self.st_mock, "All good", "success")
+        html = self.captured[-1]
+        assert "#22C55E" in html
+
+    def test_danger_banner_red_colour(self):
+        render_alert_banner(self.st_mock, "Risk", "danger")
+        html = self.captured[-1]
+        assert "#EF4444" in html
+
+    def test_unknown_type_falls_back_to_info(self):
+        render_alert_banner(self.st_mock, "Fallback", "unknown_type")
+        html = self.captured[-1]
+        # Should default to info (indigo)
+        assert "#6366F1" in html
+
+    def test_html_escaping(self):
+        render_alert_banner(self.st_mock, "<script>alert(1)</script>", "info")
+        html = self.captured[-1]
+        assert "<script>" not in html
+        assert "&lt;script&gt;" in html
+
+
+# ---------------------------------------------------------------------------
+# render_metric_delta_card
+# ---------------------------------------------------------------------------
+
+class TestRenderMetricDeltaCard:
+    """Tests for ui_theme.render_metric_delta_card() HTML output."""
+
+    def setup_method(self):
+        self.captured = []
+        self.st_mock = types.SimpleNamespace(
+            markdown=lambda html, **kw: self.captured.append(html)
+        )
+
+    def test_positive_delta_uses_green(self):
+        render_metric_delta_card(self.st_mock, "Return", "+2.3%", 2.3)
+        assert "#22C55E" in self.captured[-1]
+
+    def test_negative_delta_uses_red(self):
+        render_metric_delta_card(self.st_mock, "Return", "-1.5%", -1.5)
+        assert "#EF4444" in self.captured[-1]
+
+    def test_label_appears_in_html(self):
+        render_metric_delta_card(self.st_mock, "My Label", "42", 0.5)
+        assert "My Label" in self.captured[-1]
+
+    def test_value_appears_in_html(self):
+        render_metric_delta_card(self.st_mock, "P/E", "25.4x", 1.0)
+        assert "25.4x" in self.captured[-1]
+
+    def test_upward_arrow_when_positive(self):
+        render_metric_delta_card(self.st_mock, "X", "Y", 1.0)
+        assert "\u25b2" in self.captured[-1]  # up arrow
+
+    def test_downward_arrow_when_negative(self):
+        render_metric_delta_card(self.st_mock, "X", "Y", -1.0)
+        assert "\u25bc" in self.captured[-1]  # down arrow
