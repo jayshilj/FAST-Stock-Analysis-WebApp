@@ -785,3 +785,85 @@ def page_title(st, title, subtitle=None):
             unsafe_allow_html=True,
         )
     st.markdown("</div>", unsafe_allow_html=True)
+
+def render_alert_banner(st, message, alert_type="info"):
+    """Render a styled alert banner with icon and contextual colour.
+
+    Args:
+        st:         The ``streamlit`` module reference.
+        message:    The alert message text (will be HTML-escaped).
+        alert_type: One of ``'info'`` (blue), ``'success'`` (green),
+                    ``'warning'`` (amber), or ``'danger'`` (red).
+                    Defaults to ``'info'``.
+
+    Example::
+
+        render_alert_banner(st, "RSI crossed above 70 — overbought signal.", "warning")
+    """
+    _ALERT_STYLES = {
+        "info":    {"bg": "rgba(99,102,241,0.15)",  "border": "#6366F1", "icon": "??"},
+        "success": {"bg": "rgba(34,197,94,0.15)",   "border": "#22C55E", "icon": "?"},
+        "warning": {"bg": "rgba(245,158,11,0.15)",  "border": "#F59E0B", "icon": "??"},
+        "danger":  {"bg": "rgba(239,68,68,0.15)",   "border": "#EF4444", "icon": "??"},
+    }
+    style = _ALERT_STYLES.get(alert_type, _ALERT_STYLES["info"])
+    st.markdown(
+        """
+        <div style="
+            background:{bg};
+            border-left:4px solid {border};
+            border-radius:8px;
+            padding:0.75rem 1rem;
+            margin:0.5rem 0;
+            display:flex;
+            align-items:center;
+            gap:0.6rem;
+            font-size:0.95rem;
+        ">
+            <span style="font-size:1.2rem;">{icon}</span>
+            <span>{message}</span>
+        </div>
+        """.format(
+            bg=style["bg"],
+            border=style["border"],
+            icon=style["icon"],
+            message=escape(str(message)),
+        ),
+        unsafe_allow_html=True,
+    )
+
+
+def render_metric_delta_card(st, label, value, delta, delta_label="vs prev. close"):
+    """Render a metric card with a value and a coloured delta indicator.
+
+    Args:
+        st:          The ``streamlit`` module reference.
+        label:       Short metric name (e.g. ``'Daily Return'``).
+        value:       Primary formatted value string (e.g. ``'+1.23%'``).
+        delta:       Numeric delta used to determine colour direction.
+        delta_label: Descriptive label for the delta (default ``'vs prev. close'``).
+    """
+    colour = "#22C55E" if float(delta) >= 0 else "#EF4444"
+    arrow = "?" if float(delta) >= 0 else "?"
+    st.markdown(
+        """
+        <div style="
+            background:rgba(255,255,255,0.04);
+            border:1px solid rgba(255,255,255,0.08);
+            border-radius:12px;
+            padding:1rem 1.2rem;
+            text-align:center;
+        ">
+            <p style="margin:0;font-size:0.78rem;opacity:0.6;text-transform:uppercase;letter-spacing:0.06em;">{label}</p>
+            <p style="margin:0.4rem 0 0;font-size:1.6rem;font-weight:700;">{value}</p>
+            <p style="margin:0.2rem 0 0;font-size:0.82rem;color:{colour};">{arrow} {delta_label}</p>
+        </div>
+        """.format(
+            label=escape(str(label)),
+            value=escape(str(value)),
+            colour=colour,
+            arrow=arrow,
+            delta_label=escape(str(delta_label)),
+        ),
+        unsafe_allow_html=True,
+    )
